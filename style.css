@@ -16,7 +16,9 @@
   --p: 0; /* progresso 0..1 */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bot: env(safe-area-inset-bottom, 0px);
+  color-scheme: dark;
 }
+[hidden] { display: none !important; }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; }
@@ -243,7 +245,7 @@ textarea:focus, input:focus, select:focus { outline: 2px solid var(--amber); bor
 .ask input { flex: 1; }
 .ask button { width: 46px; border: 0; border-radius: 12px; background: var(--ink); color: #fff; font-size: 16px; }
 .claude-links { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-.ghost { border: 1px solid #e3d9c6; background: transparent; border-radius: 12px; padding: 9px 12px; font-weight: 700; font-size: 14px; color: var(--ink); }
+.ghost { display: inline-block; text-decoration: none; border: 1px solid #e3d9c6; background: transparent; border-radius: 12px; padding: 9px 12px; font-weight: 700; font-size: 14px; color: var(--ink); }
 .snz { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .snz button {
   border: 1px solid #e3d9c6; background: var(--paper); border-radius: 12px; padding: 10px 4px;
@@ -276,6 +278,7 @@ textarea:focus, input:focus, select:focus { outline: 2px solid var(--amber); bor
 .panel h3 { margin: 20px 0 8px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; opacity: .7; }
 .panel .note { font-size: 13px; opacity: .75; margin: 0 0 8px; line-height: 1.4; }
 .panel select { margin-top: 8px; }
+.panel .note.ok { color: var(--mint); opacity: 1; font-weight: 700; }
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
 .stat { background: var(--glass); border: 1px solid var(--glass-line); border-radius: 14px; padding: 10px; text-align: center; }
 .stat b { display: block; font-size: 22px; }

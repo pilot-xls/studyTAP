@@ -225,7 +225,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     $('#notes').value = data.notes[c.id] || '';
     $('#noteSaved').textContent = '';
     renderChat();
-    $('#keyHint').style.display = S.apiKey ? 'none' : '';
+    refreshClaudeUI();
     $('#sheetBody').scrollTop = 0;
     sheet.classList.add('open'); sheet.setAttribute('aria-hidden', 'false');
     backdrop.classList.add('show');
@@ -277,12 +277,27 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     return `Cartão de estudo (tema: ${LABEL[c.theme] || c.theme}, ${c.prio}):\nPergunta: ${c.q}\nResposta no cartão: ${c.a}` +
       (data.notes[c.id] ? `\nAs minhas notas: ${data.notes[c.id]}` : '');
   }
-  $('#openClaude').addEventListener('click', () => {
+  // Ligação ao Claude: 1) conta Claude (quando a app abre pelo link do Claude), 2) chave API, 3) link para claude.ai
+  let sampleFn = null;
+  if (window.claude && typeof window.claude.use === 'function') {
+    window.claude.use('sample').then(s => { sampleFn = s || null; refreshClaudeUI(); }).catch(() => {});
+  }
+  const chatMode = () => sampleFn ? 'account' : S.apiKey ? 'key' : 'none';
+  function refreshClaudeUI() {
+    const mode = chatMode();
+    $('#keyHint').hidden = mode !== 'none';
+    $('#openClaude').hidden = mode === 'account';
+    $('#sampleNote').hidden = mode !== 'account';
+    $('#keyBox').hidden = mode === 'account';
+    updateClaudeLink();
+  }
+  function updateClaudeLink() {
     const c = deck[idx]; if (!c) return;
     const extra = $('#askInput').value.trim();
     const prompt = `${SYSTEM}\n\n${cardContext(c)}\n\n${extra || 'Explica-me isto de forma simples e diz se a resposta do cartão está correta e completa.'}`;
-    window.open('https://claude.ai/new?q=' + encodeURIComponent(prompt), '_blank', 'noopener');
-  });
+    $('#openClaude').href = 'https://claude.ai/new?q=' + encodeURIComponent(prompt);
+  }
+  $('#askInput').addEventListener('input', updateClaudeLink);
   $('#keyHint').addEventListener('click', () => { closeSheet(); openPanel(); setTimeout(() => $('#apiKey').focus(), 350); });
   sheet.querySelectorAll('.quick button').forEach(b => b.addEventListener('click', () => ask(b.dataset.q)));
   $('#askForm').addEventListener('submit', e => { e.preventDefault(); const v = $('#askInput').value.trim(); if (v) ask(v); });
@@ -324,16 +339,42 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
   async function ask(question) {
     const c = deck[idx]; if (!c) return;
     $('#askInput').value = '';
-    if (!S.apiKey) {
-      $('#askInput').value = question;
-      toast('Sem chave API: a abrir no claude.ai');
-      setTimeout(() => $('#openClaude').click(), 500);
-      return;
-    }
     const hist = chats[c.id] = chats[c.id] || [];
     hist.push({ role: 'user', content: question });
+    const mode = chatMode();
+    if (mode === 'none') {
+      hist.push({ role: 'assistant', err: true, content:
+        'Para falares comigo aqui dentro da app, abre-a pelo link do Claude (usa a tua conta, sem custos extra) ou mete uma chave API em ☰ ▸ Claude.\nPor agora, «Abrir no claude.ai» leva a pergunta para lá.' });
+      renderChat(); scrollChat(); updateClaudeLink();
+      return;
+    }
     const bot = { role: 'assistant', content: '', pending: true };
     hist.push(bot); renderChat(); scrollChat();
+
+    if (mode === 'account') {
+      const turns = hist.filter(m => !m.pending && !m.err).map(m => ({ role: m.role, content: m.content })).slice(-12);
+      while (turns.length && turns[0].role !== 'user') turns.shift();
+      try {
+        const { text } = await sampleFn(
+          [{ role: 'user', content: SYSTEM + '\n\n' + cardContext(c) + '\n\nResponde às minhas perguntas sobre este cartão.' }, ...turns],
+          { cache: false, onText: ({ text }) => { bot.content = text; renderChat(); scrollChat(); } });
+        bot.content = text; bot.pending = false;
+      } catch (e) {
+        bot.pending = false;
+        const msgs = {
+          not_granted: 'Não autorizaste a app a usar o Claude. Podes autorizar no menu de permissões do artifact.',
+          sampling_disabled: 'O Claude não está disponível nesta conta.',
+          rate_limited: 'Muitas perguntas seguidas ou limite de uso atingido. Tenta daqui a pouco.',
+          session_expired: 'A sessão expirou. Volta a entrar no Claude.',
+          refused: 'O Claude não respondeu a esta pergunta. Reformula.',
+          cancelled: 'Cancelado.',
+        };
+        if (e && e.text) { bot.content = e.text + '\n\n(resposta interrompida)'; }
+        else { bot.err = true; bot.content = msgs[e && e.code] || 'Falhou a ligação ao Claude. Tenta outra vez.'; }
+      }
+      renderChat(); scrollChat();
+      return;
+    }
 
     const messages = hist.filter(m => !m.pending && !m.err).map(m => ({ role: m.role, content: m.content }));
     messages[0] = { role: 'user', content: cardContext(c) + '\n\n' + messages[0].content };
@@ -427,14 +468,30 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     toast(`🛫 ${deck.length} cartões a bordo`);
   });
   $('#resetSnooze').addEventListener('click', () => {
-    if (!confirm('Repor todos os cartões dominados e adiados?')) return;
+    const b = $('#resetSnooze');
+    if (!b.dataset.armed) {
+      b.dataset.armed = '1'; b.textContent = 'Tocar de novo para confirmar';
+      setTimeout(() => { delete b.dataset.armed; b.textContent = 'Repor escondidos'; }, 3000);
+      return;
+    }
+    delete b.dataset.armed; b.textContent = 'Repor escondidos';
     data.snooze = {}; persist(); toast('Cartões repostos'); openPanel();
   });
-  $('#exportBtn').addEventListener('click', () => {
-    const out = { exportado: new Date().toISOString(), notas: cards.filter(c => data.notes[c.id]).map(c => ({ pergunta: c.q, nota: data.notes[c.id] })), raw: data };
-    const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = `cartoes-tap-notas-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+  let downloadsCap = null;
+  if (window.claude && typeof window.claude.use === 'function') {
+    window.claude.use('downloads').then(d => { downloadsCap = d || null; }).catch(() => {});
+  }
+  $('#exportBtn').addEventListener('click', async () => {
+    const raw = JSON.parse(JSON.stringify(data)); raw.settings.apiKey = ''; // nunca exportar a chave
+    const out = { exportado: new Date().toISOString(), notas: cards.filter(c => data.notes[c.id]).map(c => ({ pergunta: c.q, nota: data.notes[c.id] })), raw };
+    const json = JSON.stringify(out, null, 2);
+    const filename = `cartoes-tap-notas-${new Date().toISOString().slice(0, 10)}.json`;
+    if (downloadsCap) {
+      try { await downloadsCap.save({ filename, data: json }); toast('Notas exportadas ✓'); } catch { toast('Exportação cancelada'); }
+      return;
+    }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+    a.download = filename; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   });
   $('#importFile').addEventListener('change', async e => {

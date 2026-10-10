@@ -44,8 +44,15 @@ Depois de mudares o `app.js`, o `style.css` ou o `index.html`, altera `VERSION` 
 
 ## Claude
 
-- **Abrir no claude.ai**: abre uma conversa nova com o cartão já escrito. Usa a tua conta normal e não precisa de configuração.
-- **Chat dentro da app** (opcional): cola uma chave da API Anthropic em ☰ ▸ Claude. A chave fica guardada só no teu telemóvel, nunca no GitHub. O uso da API é pago à parte, em console.anthropic.com.
+A forma como falas com o Claude depende de onde abres a app:
+
+```
+Link do Claude (claude.ai/artifact/…) ─► chat dentro da app com a tua conta Claude, sem chave e sem custos extra
+GitHub Pages sem chave ───────────────► botão «Abrir no claude.ai» (sai da app)
+GitHub Pages + chave API ─────────────► chat dentro da app, pago à parte (console.anthropic.com)
+```
+
+A chave API é opcional e fica só no teu telemóvel (☰ ▸ Claude). Nunca é exportada nem vai para o GitHub.
 
 > ⚠️ Nunca escrevas a chave API em nenhum ficheiro do repositório: o repositório é público.
 
