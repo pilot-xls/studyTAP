@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Cartões TAP</title>
+<meta name="description" content="Cartões rápidos para a entrevista e o teste teórico de piloto.">
+<meta name="theme-color" content="#0b1530">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cartões TAP">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="sky" aria-hidden="true">
+  <div class="stars"></div>
+  <div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div><div class="cloud c4"></div>
+</div>
+
+<header class="top">
+  <div class="route" id="route" title="Progresso do baralho">
+    <span class="apt">LIS</span>
+    <div class="track"><div class="fill" id="fill"></div><div class="plane" id="plane">✈</div></div>
+    <span class="apt" id="dest">FIM</span>
+  </div>
+  <div class="actions">
+    <span class="streak" id="streak" title="Cartões hoje · dias seguidos">0</span>
+    <button class="icon-btn" id="musicBtn" aria-label="Música" title="Música de estudo">♪</button>
+    <button class="icon-btn" id="menuBtn" aria-label="Menu" title="Filtros e definições">☰</button>
+  </div>
+</header>
+
+<main class="stage" id="stage">
+  <div class="deck" id="deck"></div>
+  <p class="hint" id="hint">Toca para o próximo · arrasta ↑ para resposta e ajuda</p>
+</main>
+
+<!-- Folha de resposta / notas / Claude -->
+<div class="backdrop" id="backdrop"></div>
+<section class="sheet" id="sheet" aria-hidden="true">
+  <div class="grab" id="grab"><span></span></div>
+  <div class="sheet-body" id="sheetBody">
+    <div class="sheet-q" id="sheetQ"></div>
+
+    <div class="block answer">
+      <h3>Resposta</h3>
+      <div id="sheetA"></div>
+      <div class="flags" id="sheetFlags"></div>
+    </div>
+
+    <div class="block">
+      <h3>As minhas notas <small id="noteSaved"></small></h3>
+      <textarea id="notes" rows="3" placeholder="Escreve aqui a tua resposta, truques e dúvidas… (guardado no telemóvel)"></textarea>
+    </div>
+
+    <div class="block claude">
+      <h3>Perguntar ao Claude</h3>
+      <div class="quick">
+        <button data-q="Explica-me isto de forma simples, com uma analogia.">Explica simples</button>
+        <button data-q="Dá-me um truque/mnemónica para memorizar.">Truque p/ memorizar</button>
+        <button data-q="Faz-me uma pergunta parecida como no exame, sem dar a resposta.">Pergunta-me outra</button>
+        <button data-q="Como responderia isto numa entrevista, em 30 segundos?">Resposta de entrevista</button>
+      </div>
+      <div class="chat" id="chat"></div>
+      <form class="ask" id="askForm">
+        <input id="askInput" placeholder="Escreve a tua dúvida…" autocomplete="off">
+        <button type="submit" aria-label="Enviar">➤</button>
+      </form>
+      <div class="claude-links">
+        <button class="ghost" id="openClaude">Abrir no claude.ai ↗</button>
+        <button class="ghost" id="keyHint">Configurar chave API</button>
+      </div>
+    </div>
+
+    <div class="block snooze">
+      <h3>Este cartão</h3>
+      <div class="snz">
+        <button data-snooze="600000">10 min</button>
+        <button data-snooze="3600000">1 hora</button>
+        <button data-snooze="86400000">1 dia</button>
+        <button data-snooze="604800000">7 dias</button>
+      </div>
+      <button class="never" data-snooze="-1">✓ Já sei, não mostrar mais</button>
+      <button class="ghost back" id="closeSheet">Voltar ao cartão</button>
+    </div>
+  </div>
+</section>
+
+<!-- Menu / definições -->
+<section class="panel" id="panel" aria-hidden="true">
+  <div class="panel-in">
+    <div class="panel-head">
+      <h2>Plano de voo</h2>
+      <button class="icon-btn" id="closePanel" aria-label="Fechar">✕</button>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <h3>Modo</h3>
+    <div class="seg" id="modeSeg">
+      <button data-mode="all">Tudo</button>
+      <button data-mode="tech">Teste teórico</button>
+      <button data-mode="interview">Entrevista</button>
+    </div>
+
+    <h3>Temas</h3>
+    <div class="chips" id="themeChips"></div>
+
+    <h3>Prioridade</h3>
+    <div class="seg" id="prioSeg">
+      <button data-prio="all">Todas (P1 primeiro)</button>
+      <button data-prio="P1">Só P1</button>
+      <button data-prio="P2">Só P2</button>
+    </div>
+
+    <h3>Música</h3>
+    <div class="row">
+      <span>Volume</span>
+      <input type="range" id="vol" min="0" max="1" step="0.01">
+    </div>
+
+    <h3>Claude dentro da app</h3>
+    <p class="note">Opcional. A chave fica guardada só neste telemóvel e é enviada apenas para a API da Anthropic. Sem chave, usa o botão «Abrir no claude.ai».</p>
+    <input type="password" id="apiKey" placeholder="sk-ant-…" autocomplete="off">
+    <select id="model">
+      <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (recomendado)</option>
+      <option value="claude-haiku-5-5">Claude Haiku 5.5 (mais barato)</option>
+      <option value="claude-opus-5-5">Claude Opus 5.5 (mais raciocínio)</option>
+    </select>
+
+    <h3>Dados</h3>
+    <div class="data-btns">
+      <button id="exportBtn">Exportar notas</button>
+      <label class="file-btn">Importar<input type="file" id="importFile" accept="application/json" hidden></label>
+      <button id="resetSnooze">Repor escondidos</button>
+    </div>
+    <button class="primary" id="applyBtn">Aplicar e baralhar</button>
+  </div>
+</section>
+
+<div class="toast" id="toast"></div>
+<canvas id="confetti" aria-hidden="true"></canvas>
+
+<script src="music.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
