@@ -221,7 +221,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .flag.verificar { background: #fff1d6; color: #9a5b00; }
 .flag.corrigido { background: #dcf6ec; color: #1b7a5a; }
 .flag.preencher { background: #ffe1e4; color: #b2303e; }
-textarea, input[type=password], input:not([type]), select {
+textarea, input[type=password], input[type=search], input:not([type]), select {
   width: 100%; font: inherit; font-size: 16px; color: var(--ink);
   border: 1px solid #e3d9c6; background: #fffdf8; border-radius: 12px; padding: 10px 12px; resize: vertical;
 }
@@ -257,6 +257,10 @@ textarea:focus, input:focus, select:focus { outline: 2px solid var(--amber); bor
   background: var(--mint); color: #08392a; font-weight: 900; font-size: 15px;
 }
 .back { width: 100%; margin-top: 8px; }
+.block h3 .mini {
+  border: 1px solid #e3d9c6; background: var(--paper); border-radius: 999px; padding: 4px 10px;
+  font-size: 12px; font-weight: 800; letter-spacing: 0; text-transform: none; color: var(--ink);
+}
 
 /* ---------- Painel de menu ---------- */
 .panel {
@@ -278,11 +282,20 @@ textarea:focus, input:focus, select:focus { outline: 2px solid var(--amber); bor
 .panel h3 { margin: 20px 0 8px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; opacity: .7; }
 .panel .note { font-size: 13px; opacity: .75; margin: 0 0 8px; line-height: 1.4; }
 .panel select { margin-top: 8px; }
+.gh-row { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin: 8px 0; }
 .panel .note.ok { color: var(--mint); opacity: 1; font-weight: 700; }
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
 .stat { background: var(--glass); border: 1px solid var(--glass-line); border-radius: 14px; padding: 10px; text-align: center; }
 .stat b { display: block; font-size: 22px; }
 .stat span { font-size: 11px; opacity: .75; }
+.stat.wide { grid-column: 1 / -1; text-align: left; padding: 12px 14px; }
+.stat.wide b small { font-size: 15px; opacity: .6; }
+.stat .bar { display: block; height: 6px; margin-top: 8px; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; }
+.stat .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--mint), var(--amber)); }
+.wide-btn {
+  width: 100%; margin-top: 10px; border: 1px solid var(--glass-line); background: var(--glass);
+  border-radius: 14px; padding: 12px; font-size: 15px; font-weight: 800;
+}
 .seg { display: flex; gap: 6px; flex-wrap: wrap; }
 .seg button, .chips button {
   border: 1px solid var(--glass-line); background: var(--glass); border-radius: 999px;
@@ -303,13 +316,42 @@ textarea:focus, input:focus, select:focus { outline: 2px solid var(--amber); bor
   width: 100%; margin-top: 22px; border: 0; border-radius: 14px; padding: 14px;
   background: var(--amber); color: var(--ink); font-weight: 900; font-size: 16px;
 }
+.primary:disabled { opacity: .45; cursor: default; }
+
+/* ---------- Todos os cartões ---------- */
+.panel-in.lib { width: min(100%, 560px); }
+#libList { margin-top: 14px; }
+.lib-filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.lib-filters select { margin-top: 8px; font-size: 15px; padding: 9px 10px; }
+#libCount { margin: 12px 0 8px; }
+.lib-rows { display: flex; flex-direction: column; gap: 6px; }
+.lib-row {
+  display: flex; flex-direction: column; gap: 4px; width: 100%; text-align: left;
+  border: 1px solid var(--glass-line); border-left: 4px solid var(--theme); background: var(--glass);
+  border-radius: 12px; padding: 10px 12px;
+}
+.lib-row b { font-size: 14.5px; line-height: 1.3; font-weight: 750; }
+.lib-row span { font-size: 11.5px; font-weight: 700; opacity: .7; }
+.lib-row em { font-style: normal; color: var(--amber); }
+#libEdit { margin-top: 12px; }
+#libEdit .flags { margin: 12px 0 0; }
+#libEdit h3 { display: flex; justify-content: space-between; align-items: center; }
+#libEdit h3 small { text-transform: none; letter-spacing: 0; color: var(--mint); }
+#editHint { margin: 10px 0 0; }
+#editHint:empty { display: none; }
+#libEdit .primary { margin-top: 12px; }
+.lib-back {
+  border: 1px solid var(--glass-line); background: var(--glass); border-radius: 12px;
+  padding: 8px 12px; font-size: 13px; font-weight: 700;
+}
 
 /* ---------- Toast e confetti ---------- */
 .toast {
   position: fixed; left: 50%; bottom: calc(26px + var(--safe-bot)); z-index: 20;
   transform: translate(-50%, 30px); opacity: 0; pointer-events: none;
   background: var(--ink); color: #fff; border: 1px solid var(--glass-line);
-  padding: 10px 16px; border-radius: 999px; font-weight: 800; font-size: 14px; white-space: nowrap;
+  padding: 10px 16px; border-radius: 22px; font-weight: 800; font-size: 14px;
+  width: max-content; max-width: calc(100% - 32px); text-align: center;
   transition: all .35s cubic-bezier(.2,.9,.25,1.2);
 }
 .toast.show { transform: translate(-50%, 0); opacity: 1; }

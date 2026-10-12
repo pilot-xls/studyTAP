@@ -12,9 +12,12 @@ Arrastar ↑  ────────────► resposta + as tuas notas +
    └─ ✓ Já sei ────────────────────────► não volta a aparecer
 ♪ (topo) ───────────────► música de estudo calma (gerada na app, funciona offline)
 ☰ (topo) ───────────────► modo (Tudo / Teste teórico / Entrevista), temas, P1/P2, chave API, exportar notas
+   └─ 🗂 Ver e editar todos os cartões ─► lista com pesquisa ─► editar pergunta, resposta e notas
 ```
 
 Os cartões P1 aparecem sempre primeiro, baralhados.
+
+O avião no topo mostra quantas perguntas **diferentes** já viste de todos os cartões (ex.: `120/316`), desde sempre — não só hoje nem só neste voo. Em ☰ vês o mesmo número, a percentagem e as passagens no total.
 
 ## Publicar no GitHub Pages
 
@@ -38,7 +41,30 @@ Edita o `cards.md` (até diretamente no GitHub). Cada cartão é uma linha:
 
 - O tema é a primeira palavra dentro de `_[ ]_`; a prioridade é `P1` ou `P2`.
 - As etiquetas `verificar`, `corrigido` e `preencher` aparecem com cores próprias.
-- As notas ficam ligadas ao texto da pergunta. Se mudares a pergunta, a nota antiga deixa de aparecer nesse cartão.
+- As notas ficam ligadas ao texto da pergunta. Se mudares a pergunta diretamente no GitHub, a nota antiga deixa de aparecer nesse cartão (se mudares pela app, a nota acompanha).
+
+### Editar pela app (grava direto no GitHub)
+
+```
+☰ ─► 🗂 Ver e editar todos os cartões ─► toca num cartão ─► muda pergunta/resposta ─► Guardar no GitHub
+   (ou, a estudar: arrastar ↑ ─► ✎ Editar)
+        │
+        ▼
+API do GitHub ─► commit no cards.md (branch main) ─► GitHub Pages publica em 1-2 min
+        │
+        └─► neste telemóvel a alteração aparece logo
+```
+
+Precisa de um token GitHub (só uma vez):
+
+```
+github.com ─► Settings ─► Developer settings ─► Personal access tokens ─► Fine-grained tokens ─► Generate new token
+   ├─ Repository access: Only select repositories ─► este repositório
+   └─ Permissions ─► Contents: Read and write
+Copia o token ─► app ─► ☰ ─► GitHub ─► cola ─► Testar ligação
+```
+
+O token fica só no telemóvel e nunca é exportado. As notas continuam a ficar só no telemóvel (usa Exportar).
 
 Depois de mudares o `app.js`, o `style.css` ou o `index.html`, altera `VERSION` no `sw.js` (ex.: `tapcards-v2`) para o telemóvel ir buscar a versão nova. O `cards.md` atualiza sozinho quando há internet.
 
