@@ -168,7 +168,7 @@ Cada cartão: pergunta, resposta e etiquetas (tema, prioridade P1/P2). Fonte de 
 - **CAVOK?** Vis ≥ 10 km, sem nuvens abaixo de 5000 ft ou da MSA (a maior), sem CB/TCU, sem precipitação, trovoada ou nevoeiro significativos. _[Meteo P1]_
 - **METAR - periodicidade, vento e nuvens?** Normalmente de 30 em 30 min (SPECI se mudar bruscamente). Vento em graus verdadeiros (padrão ICAO; magnético só em ATIS/torre) e nuvens em AGL. Verifica a regra portuguesa (o Guia diz magnético). _[Meteo P1 verificar]_
 - **Cobertura de nuvens em oitavas?** FEW 1-2, SCT 3-4, BKN 5-7, OVC 8, SKC 0. _[Meteo P1]_
-- **TREND num METAR - período?** 2 horas. _[Meteo P1]_
+- **TREND num METAR - período?** 2 horas. TREND = METAR + 2 h, e só tem 3 opções: NOSIG, BECMG ou TEMPO. SPECI = METAR especial, emitido fora de horas quando há uma mudança significativa (visibilidade, vento, nuvens, fenómeno, etc.). _[Meteo P1]_
 - **BECMG, TEMPO, PROB?** BECMG: mudança gradual durante o período indicado. TEMPO: flutuações temporárias (<1 h cada). PROB30/40: probabilidade da alteração. _[Meteo P1]_
 - **TAF - validade?** Até 30 h nos longos (renovados de 6 em 6 h, segundo o Guia). _[Meteo P1 verificar]_
 - **SIGMET / AIRMET?** Avisos de fenómenos perigosos, duração máx. 4 h (segundo o Guia). _[Meteo P2]_
