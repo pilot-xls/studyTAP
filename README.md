@@ -64,7 +64,7 @@ github.com ─► Settings ─► Developer settings ─► Personal access toke
 Copia o token ─► app ─► ☰ ─► GitHub ─► cola ─► Testar ligação
 ```
 
-O token fica só no telemóvel e nunca é exportado. As notas ficam no telemóvel; para as guardar no GitHub usa ☰ ▸ GitHub ▸ **Sincronizar notas** (grava `notes.json` no repositório — **público = visível a todos**). Em conflito, ganha a versão do telemóvel; apagar uma nota não a apaga dos outros aparelhos.
+O token fica só no telemóvel e nunca é exportado. As notas ficam no telemóvel; para as guardar no GitHub usa ☰ ▸ GitHub ▸ **Sincronizar notas** (grava `notes.json` no repositório — **público = visível a todos**). Também sincroniza sozinho 20 s depois de saíres do cartão (só se houve alterações; sem rede, fica para a próxima). Em conflito, ganha a versão do telemóvel; apagar uma nota não a apaga dos outros aparelhos.
 
 Depois de mudares o `app.js`, o `style.css` ou o `index.html`, altera `VERSION` no `sw.js` (ex.: `tapcards-v2`) para o telemóvel ir buscar a versão nova. O `cards.md` atualiza sozinho quando há internet.
 

@@ -33,11 +33,30 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     const seg = location.pathname.split('/').filter(Boolean)[0];
     return `${h[1]}/${seg && !seg.includes('.') ? seg : h[1] + '.github.io'}`;
   }
-  const data = Object.assign({ notes: {}, snooze: {}, seen: {}, pending: [], day: '', today: 0, streak: 0, total: 0 }, store.load());
+  const data = Object.assign({ notes: {}, snooze: {}, seen: {}, pending: [], notesDirty: false, day: '', today: 0, streak: 0, total: 0 }, store.load());
   // definições novas ganham valor por omissão mesmo em dados antigos
   const S = data.settings = Object.assign({ mode: 'all', themes: null, prio: 'all', vol: .45, music: false, apiKey: '', model: 'claude-sonnet-5-5',
     ghToken: '', ghRepo: detectRepo(), ghBranch: 'main' }, data.settings);
   const persist = () => store.save(data);
+  // Sincronização automática das notas: 20 s depois de sair do cartão, só se houve alterações
+  const SYNC_DELAY = 20000;
+  let syncTimer, syncing = false, lastSyncErr = 0;
+  const markNotes = () => { data.notesDirty = true; persist(); queueSync(); };
+  function queueSync() {
+    clearTimeout(syncTimer);
+    if (!data.notesDirty || !S.ghToken) return;
+    if (['#sheet', '#library', '#panel'].some(q => $(q).classList.contains('open'))) return;
+    syncTimer = setTimeout(autoSync, SYNC_DELAY);
+  }
+  async function autoSync() {
+    if (!data.notesDirty || !S.ghToken || syncing || !navigator.onLine) return;
+    syncing = true;
+    try { await syncNotes(); toast('☁ Notas guardadas no GitHub'); }
+    catch (e) { if (Date.now() - lastSyncErr > 300000) { lastSyncErr = Date.now(); toast('☁ Notas por sincronizar: ' + e.message); } }
+    syncing = false;
+  }
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { clearTimeout(syncTimer); autoSync(); } });
+  window.addEventListener('online', queueSync);
 
   let cards = [], deck = [], idx = 0, chats = {};
 
@@ -261,6 +280,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     sheet.style.transform = '';
     document.activeElement && document.activeElement.blur();
     refreshCard();
+    queueSync();
   }
   function refreshCard() {
     const cur = $('#deck .card:not(.ghost)');
@@ -286,7 +306,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     noteTimer = setTimeout(() => {
       const v = e.target.value.trim();
       if (v) data.notes[c.id] = e.target.value; else delete data.notes[c.id];
-      persist(); $('#noteSaved').textContent = 'guardado ✓';
+      markNotes(); $('#noteSaved').textContent = 'guardado ✓';
     }, 400);
   });
 
@@ -355,7 +375,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
           const s = document.createElement('button'); s.className = 'save'; s.textContent = '＋ Guardar nas notas';
           s.onclick = () => {
             data.notes[c.id] = ((data.notes[c.id] || '') + '\n\n[Claude] ' + m.content).trim();
-            $('#notes').value = data.notes[c.id]; persist(); toast('Guardado nas notas ✎');
+            $('#notes').value = data.notes[c.id]; markNotes(); toast('Guardado nas notas ✎');
           };
           d.appendChild(s);
         }
@@ -473,7 +493,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
       <div class="stat"><b>${Object.keys(data.notes).length}</b><span>com notas</span></div>`;
     panel.classList.add('open'); panel.setAttribute('aria-hidden', 'false');
   }
-  function closePanel() { panel.classList.remove('open'); panel.setAttribute('aria-hidden', 'true'); }
+  function closePanel() { panel.classList.remove('open'); panel.setAttribute('aria-hidden', 'true'); queueSync(); }
   function markMode(m) {
     $('#modeSeg').querySelectorAll('button').forEach(b => b.classList.toggle('sel', b.dataset.mode === m));
   }
@@ -558,7 +578,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     try {
       const j = JSON.parse(await f.text()); const r = j.raw || j;
       Object.assign(data.notes, r.notes || {}); Object.assign(data.snooze, r.snooze || {});
-      persist(); toast('Notas importadas ✓'); openPanel();
+      markNotes(); toast('Notas importadas ✓'); openPanel();
     } catch { toast('Ficheiro inválido'); }
   });
 
@@ -603,10 +623,11 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     const merged = Object.assign({}, remote, data.notes);
     const same = JSON.stringify(Object.entries(merged).sort()) === JSON.stringify(Object.entries(remote).sort());
     data.notes = merged; persist();
-    if (same && sha) return Object.keys(merged).length;
+    if (same && sha) { data.notesDirty = false; persist(); return Object.keys(merged).length; }
     const body = { message: 'Sincronizar notas', content: b64enc(JSON.stringify({ atualizado: new Date().toISOString(), notes: merged }, null, 2)), branch: S.ghBranch };
     if (sha) body.sha = sha;
     await gh('', { method: 'PUT', body: JSON.stringify(body) }, 'notes.json');
+    data.notesDirty = false; persist();
     return Object.keys(merged).length;
   }
   // Troca a linha do cartão no cards.md do GitHub; devolve a linha antiga
@@ -647,6 +668,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     document.activeElement && document.activeElement.blur();
     editId = null;
     refreshCard();
+    queueSync();
   }
   $('#closeLib').addEventListener('click', closeLib);
   lib.addEventListener('click', e => { if (e.target === lib) closeLib(); });
@@ -721,7 +743,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     const v = e.target.value; // lido já: o editor pode mudar de cartão antes de gravar
     libNoteT = setTimeout(() => {
       if (v.trim()) data.notes[id] = v; else delete data.notes[id];
-      persist(); $('#editNoteSaved').textContent = 'guardado ✓';
+      markNotes(); $('#editNoteSaved').textContent = 'guardado ✓';
     }, 400);
   });
 
