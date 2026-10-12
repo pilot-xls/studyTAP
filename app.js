@@ -505,6 +505,15 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     } catch (e) { toast(e.message); }
     b.disabled = false; b.textContent = 'Testar ligação';
   });
+  $('#syncNotes').addEventListener('click', async () => {
+    const b = $('#syncNotes');
+    if (!$('#ghToken').value.trim()) { toast('Mete primeiro o token'); return; }
+    ['#ghToken', '#ghRepo', '#ghBranch'].forEach(s => $(s).dispatchEvent(new Event('change')));
+    b.disabled = true; b.textContent = 'A sincronizar…';
+    try { const n = await syncNotes(); toast(`✓ ${n} notas sincronizadas`); }
+    catch (e) { toast(e.message); }
+    b.disabled = false; b.textContent = 'Sincronizar notas';
+  });
   $('#openLib').addEventListener('click', () => { closePanel(); openLib(); });
   $('#applyBtn').addEventListener('click', () => {
     const modeBtn = $('#modeSeg .sel');
@@ -560,11 +569,11 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
     return btoa(bin);
   };
-  async function gh(path, opts = {}) {
+  async function gh(path, opts = {}, file = 'cards.md') {
     if (!/^[\w.-]+\/[\w.-]+$/.test(S.ghRepo)) throw new Error('Repositório inválido (usa utilizador/repositório)');
     let res;
     try {
-      res = await fetch(`https://api.github.com/repos/${S.ghRepo}/contents/cards.md${path}`, {
+      res = await fetch(`https://api.github.com/repos/${S.ghRepo}/contents/${file}${path}`, {
         cache: 'no-store', ...opts,
         headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${S.ghToken}`, ...(opts.body ? { 'Content-Type': 'application/json' } : {}) },
       });
@@ -573,16 +582,32 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     const err = new Error({
       401: 'Token GitHub inválido ou expirado',
       403: 'O token não tem permissão (precisa de Contents: Read and write)',
-      404: `Não encontrei cards.md em ${S.ghRepo} (${S.ghBranch}) — ou o token não tem acesso a este repositório`,
+      404: `Não encontrei ${file} em ${S.ghRepo} (${S.ghBranch}) — ou o token não tem acesso a este repositório`,
       409: 'O ficheiro mudou entretanto no GitHub',
     }[res.status] || `Erro GitHub ${res.status}`);
     err.status = res.status;
     throw err;
   }
-  async function ghFile() {
-    const f = await gh(`?ref=${encodeURIComponent(S.ghBranch)}`);
+  async function ghFile(file = 'cards.md') {
+    const f = await gh(`?ref=${encodeURIComponent(S.ghBranch)}`, {}, file);
     if (typeof f.content !== 'string' || !f.sha) throw new Error('Resposta inesperada do GitHub');
     return { sha: f.sha, text: b64dec(f.content) };
+  }
+  // Sincroniza as notas com notes.json (junta; em conflito, a versão deste telemóvel ganha)
+  async function syncNotes() {
+    let remote = {}, sha;
+    try {
+      const f = await ghFile('notes.json'); sha = f.sha;
+      try { remote = JSON.parse(f.text).notes || {}; } catch { throw new Error('notes.json inválido no GitHub'); }
+    } catch (e) { if (e.status !== 404) throw e; }
+    const merged = Object.assign({}, remote, data.notes);
+    const same = JSON.stringify(Object.entries(merged).sort()) === JSON.stringify(Object.entries(remote).sort());
+    data.notes = merged; persist();
+    if (same && sha) return Object.keys(merged).length;
+    const body = { message: 'Sincronizar notas', content: b64enc(JSON.stringify({ atualizado: new Date().toISOString(), notes: merged }, null, 2)), branch: S.ghBranch };
+    if (sha) body.sha = sha;
+    await gh('', { method: 'PUT', body: JSON.stringify(body) }, 'notes.json');
+    return Object.keys(merged).length;
   }
   // Troca a linha do cartão no cards.md do GitHub; devolve a linha antiga
   async function commitLine(oldId, newLine, msg, tries = 2) {
