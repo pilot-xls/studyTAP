@@ -22,7 +22,7 @@
 </div>
 
 <header class="top">
-  <div class="route" id="route" title="Progresso do baralho">
+  <div class="route" id="route" title="Perguntas diferentes já vistas (de todos os cartões)">
     <span class="apt">LIS</span>
     <div class="track"><div class="fill" id="fill"></div><div class="plane" id="plane">✈</div></div>
     <span class="apt" id="dest">FIM</span>
@@ -47,7 +47,7 @@
     <div class="sheet-q" id="sheetQ"></div>
 
     <div class="block answer">
-      <h3>Resposta</h3>
+      <h3>Resposta <button class="mini" id="editCard">✎ Editar</button></h3>
       <div id="sheetA"></div>
       <div class="flags" id="sheetFlags"></div>
     </div>
@@ -99,6 +99,7 @@
     </div>
 
     <div class="stats" id="stats"></div>
+    <button class="wide-btn" id="openLib">🗂 Ver e editar todos os cartões</button>
 
     <h3>Modo</h3>
     <div class="seg" id="modeSeg">
@@ -135,6 +136,15 @@
     </select>
     </div>
 
+    <h3>GitHub (editar cartões)</h3>
+    <p class="note">Para editares perguntas e respostas, a app grava diretamente no <b>cards.md</b> do repositório. Cria um token em github.com ▸ Settings ▸ Developer settings ▸ Fine-grained tokens, só para este repositório, com <b>Contents: Read and write</b>. Fica guardado só neste telemóvel.</p>
+    <input type="password" id="ghToken" placeholder="github_pat_…" autocomplete="off">
+    <div class="gh-row">
+      <input id="ghRepo" placeholder="utilizador/repositório" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <input id="ghBranch" placeholder="main" autocomplete="off" autocapitalize="off" spellcheck="false">
+    </div>
+    <div class="data-btns"><button id="ghTest">Testar ligação</button></div>
+
     <h3>Dados</h3>
     <div class="data-btns">
       <button id="exportBtn">Exportar notas</button>
@@ -142,6 +152,44 @@
       <button id="resetSnooze">Repor escondidos</button>
     </div>
     <button class="primary" id="applyBtn">Aplicar e baralhar</button>
+  </div>
+</section>
+
+<!-- Todos os cartões: lista e editor -->
+<section class="panel" id="library" aria-hidden="true">
+  <div class="panel-in lib" id="libIn">
+    <div class="panel-head">
+      <h2 id="libTitle">Cartões</h2>
+      <button class="icon-btn" id="closeLib" aria-label="Fechar">✕</button>
+    </div>
+
+    <div id="libList">
+      <input type="search" id="libSearch" placeholder="Procurar pergunta, resposta ou nota…" autocomplete="off">
+      <div class="lib-filters">
+        <select id="libTheme"></select>
+        <select id="libShow">
+          <option value="">Todos</option>
+          <option value="notes">Com notas</option>
+          <option value="unseen">Nunca vistos</option>
+          <option value="hidden">Dominados / adiados</option>
+        </select>
+      </div>
+      <p class="note" id="libCount"></p>
+      <div class="lib-rows" id="libRows"></div>
+    </div>
+
+    <div id="libEdit" hidden>
+      <button class="lib-back" id="libBack">‹ Lista</button>
+      <div class="flags" id="editFlags"></div>
+      <h3>Pergunta</h3>
+      <textarea id="editQ" rows="2"></textarea>
+      <h3>Resposta</h3>
+      <textarea id="editA" rows="6"></textarea>
+      <p class="note" id="editHint"></p>
+      <button class="primary" id="editSave">Guardar no GitHub</button>
+      <h3>As minhas notas <small id="editNoteSaved"></small></h3>
+      <textarea id="editNotes" rows="4" placeholder="Truques e dúvidas… (guardado no telemóvel)"></textarea>
+    </div>
   </div>
 </section>
 

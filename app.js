@@ -26,26 +26,46 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     load() { try { return JSON.parse(localStorage.getItem(this.k)) || {}; } catch { return {}; } },
     save(d) { try { localStorage.setItem(this.k, JSON.stringify(d)); } catch {} },
   };
-  const data = Object.assign({ notes: {}, snooze: {}, seen: {}, day: '', today: 0, streak: 0, total: 0,
-    settings: { mode: 'all', themes: null, prio: 'all', vol: .45, music: false, apiKey: '', model: 'claude-sonnet-5-5' } }, store.load());
-  const S = data.settings;
+  // Repositório do cards.md: deduzido do endereço do GitHub Pages (utilizador.github.io/repo/)
+  function detectRepo() {
+    const h = location.hostname.match(/^([^.]+)\.github\.io$/i);
+    if (!h) return 'pilot-xls/studyTAP';
+    const seg = location.pathname.split('/').filter(Boolean)[0];
+    return `${h[1]}/${seg && !seg.includes('.') ? seg : h[1] + '.github.io'}`;
+  }
+  const data = Object.assign({ notes: {}, snooze: {}, seen: {}, pending: [], day: '', today: 0, streak: 0, total: 0 }, store.load());
+  // definições novas ganham valor por omissão mesmo em dados antigos
+  const S = data.settings = Object.assign({ mode: 'all', themes: null, prio: 'all', vol: .45, music: false, apiKey: '', model: 'claude-sonnet-5-5',
+    ghToken: '', ghRepo: detectRepo(), ghBranch: 'main' }, data.settings);
   const persist = () => store.save(data);
 
   let cards = [], deck = [], idx = 0, chats = {};
 
   // ---------- Leitura dos cartões ----------
   const hash = s => { let h = 5381; for (const c of s) h = ((h << 5) + h + c.codePointAt(0)) | 0; return (h >>> 0).toString(36); };
-  function parse(md) {
-    const out = [];
-    for (const line of md.split(/\r?\n/)) {
-      const m = line.match(/^- \*\*(.+?)\*\*\s*(.*?)\s*_\[(.+?)\]_\s*$/);
-      if (!m) continue;
-      const tags = m[3].trim().split(/\s+/);
-      const theme = tags[0];
-      const prio = tags.find(t => /^P[12]$/.test(t)) || 'P2';
-      out.push({ id: hash(m[1]), q: m[1], a: m[2], theme, prio, flags: tags.slice(1).filter(t => t !== prio) });
-    }
-    return out;
+  function parseLine(line) {
+    const m = line.match(/^- \*\*(.+?)\*\*\s*(.*?)\s*_\[(.+?)\]_\s*$/);
+    if (!m) return null;
+    const tags = m[3].trim().split(/\s+/);
+    const theme = tags[0];
+    const prio = tags.find(t => /^P[12]$/.test(t)) || 'P2';
+    return { id: hash(m[1]), q: m[1], a: m[2], theme, prio, flags: tags.slice(1).filter(t => t !== prio), tags: m[3].trim(), line };
+  }
+  const parse = md => md.split(/\r?\n/).map(parseLine).filter(Boolean);
+
+  // Edições já gravadas no GitHub que o GitHub Pages ainda não publicou (demora 1-2 min)
+  function applyPending(md) {
+    if (!data.pending.length) return md;
+    const lines = md.split(/\r?\n/);
+    data.pending = data.pending.filter(p => {
+      if (Date.now() - p.at > 864e5 || lines.includes(p.to)) return false; // já publicada
+      const i = lines.indexOf(p.from);
+      if (i < 0) return false; // a linha mudou noutro sítio
+      lines[i] = p.to;
+      return true;
+    });
+    persist();
+    return lines.join('\n');
   }
 
   // ---------- Baralho ----------
@@ -105,8 +125,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     } else if (old) old.remove();
     el.querySelectorAll('.ghost, .end').forEach(g => g.remove());
 
-    updateProgress();
-    if (idx >= deck.length) { renderEnd(el); return; }
+    if (idx >= deck.length) { updateProgress(); renderEnd(el); return; }
 
     if (idx + 1 < deck.length) {
       const g = document.createElement('div');
@@ -123,6 +142,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     el.appendChild(d);
     data.seen[c.id] = (data.seen[c.id] || 0) + 1;
     persist();
+    updateProgress();
   }
 
   function renderEnd(el) {
@@ -140,12 +160,16 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     });
   }
 
+  // perguntas diferentes já vistas, de todos os cartões (não só deste voo nem só de hoje)
+  const seenCount = () => cards.reduce((n, c) => n + (data.seen[c.id] ? 1 : 0), 0);
+
   function updateProgress() {
-    const p = deck.length ? Math.min(idx / deck.length, 1) : 0;
+    const seen = seenCount();
+    const p = cards.length ? seen / cards.length : 0;
     $('#fill').style.width = p * 100 + '%';
     $('#plane').style.left = p * 100 + '%';
     document.documentElement.style.setProperty('--p', p.toFixed(3));
-    $('#dest').textContent = deck.length ? `${Math.min(idx + 1, deck.length)}/${deck.length}` : 'FIM';
+    $('#dest').textContent = `${seen}/${cards.length}`;
     $('#streak').textContent = `🔥 ${data.today} · ${data.streak}d`;
   }
 
@@ -204,8 +228,8 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
 
   document.addEventListener('keydown', e => {
     if (e.target.matches('input, textarea, select')) return;
-    const open = $('#sheet').classList.contains('open');
-    if (e.key === 'Escape') { closeSheet(); closePanel(); }
+    const open = $('#sheet').classList.contains('open') || $('#library').classList.contains('open') || $('#panel').classList.contains('open');
+    if (e.key === 'Escape') { closeSheet(); closePanel(); closeLib(); }
     else if (open) return;
     else if (e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); next(); }
     else if (e.key === 'ArrowLeft') prev();
@@ -236,11 +260,15 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     backdrop.classList.remove('show');
     sheet.style.transform = '';
     document.activeElement && document.activeElement.blur();
+    refreshCard();
+  }
+  function refreshCard() {
     const cur = $('#deck .card:not(.ghost)');
     if (cur && deck[idx]) cur.innerHTML = cardHTML(deck[idx], idx + 1, deck.length);
   }
   backdrop.addEventListener('click', closeSheet);
   $('#closeSheet').addEventListener('click', closeSheet);
+  $('#editCard').addEventListener('click', () => { const c = deck[idx]; if (!c) return; closeSheet(); openLib(c.id); });
 
   // arrastar a pega para baixo fecha
   let sd = null;
@@ -428,15 +456,21 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     $('#vol').value = S.vol;
     $('#apiKey').value = S.apiKey;
     $('#model').value = S.model;
+    $('#ghToken').value = S.ghToken;
+    $('#ghRepo').value = S.ghRepo;
+    $('#ghBranch').value = S.ghBranch;
     const mastered = Object.values(data.snooze).filter(v => v === -1).length;
     const later = Object.values(data.snooze).filter(v => v > Date.now()).length;
+    const seen = seenCount(), pct = cards.length ? Math.floor(seen / cards.length * 100) : 0;
     $('#stats').innerHTML = `
+      <div class="stat wide"><b>${seen}<small> / ${cards.length}</small></b><span>perguntas diferentes já vistas · ${pct}%</span>
+        <i class="bar"><i style="width:${pct}%"></i></i></div>
       <div class="stat"><b>${data.today}</b><span>hoje</span></div>
+      <div class="stat"><b>${data.total}</b><span>passagens no total</span></div>
+      <div class="stat"><b>${data.streak}</b><span>dias seguidos</span></div>
       <div class="stat"><b>${mastered}</b><span>dominados</span></div>
       <div class="stat"><b>${later}</b><span>adiados</span></div>
-      <div class="stat"><b>${data.streak}</b><span>dias seguidos</span></div>
-      <div class="stat"><b>${Object.keys(data.notes).length}</b><span>com notas</span></div>
-      <div class="stat"><b>${cards.length}</b><span>cartões</span></div>`;
+      <div class="stat"><b>${Object.keys(data.notes).length}</b><span>com notas</span></div>`;
     panel.classList.add('open'); panel.setAttribute('aria-hidden', 'false');
   }
   function closePanel() { panel.classList.remove('open'); panel.setAttribute('aria-hidden', 'true'); }
@@ -457,6 +491,21 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
   $('#vol').addEventListener('input', e => { S.vol = +e.target.value; StudyMusic.setVolume(S.vol); persist(); });
   $('#apiKey').addEventListener('change', e => { S.apiKey = e.target.value.trim(); persist(); });
   $('#model').addEventListener('change', e => { S.model = e.target.value; persist(); });
+  $('#ghToken').addEventListener('change', e => { S.ghToken = e.target.value.trim(); persist(); });
+  $('#ghRepo').addEventListener('change', e => { S.ghRepo = e.target.value.trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\/+$/, '') || detectRepo(); e.target.value = S.ghRepo; persist(); });
+  $('#ghBranch').addEventListener('change', e => { S.ghBranch = e.target.value.trim() || 'main'; e.target.value = S.ghBranch; persist(); });
+  $('#ghTest').addEventListener('click', async () => {
+    const b = $('#ghTest');
+    if (!$('#ghToken').value.trim()) { toast('Mete primeiro o token'); return; }
+    ['#ghToken', '#ghRepo', '#ghBranch'].forEach(s => $(s).dispatchEvent(new Event('change')));
+    b.disabled = true; b.textContent = 'A testar…';
+    try {
+      const f = await ghFile();
+      toast(`✓ Ligado: ${parse(f.text).length} cartões no GitHub`);
+    } catch (e) { toast(e.message); }
+    b.disabled = false; b.textContent = 'Testar ligação';
+  });
+  $('#openLib').addEventListener('click', () => { closePanel(); openLib(); });
   $('#applyBtn').addEventListener('click', () => {
     const modeBtn = $('#modeSeg .sel');
     const sel = [...$('#themeChips').querySelectorAll('.sel')].map(b => b.dataset.theme);
@@ -464,6 +513,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     if (modeBtn) { S.mode = modeBtn.dataset.mode; S.themes = null; } else { S.themes = sel; }
     S.prio = $('#prioSeg .sel')?.dataset.prio || 'all';
     S.apiKey = $('#apiKey').value.trim(); S.model = $('#model').value;
+    ['#ghToken', '#ghRepo', '#ghBranch'].forEach(s => $(s).dispatchEvent(new Event('change')));
     persist(); closePanel(); buildDeck(); render(1);
     toast(`🛫 ${deck.length} cartões a bordo`);
   });
@@ -482,7 +532,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     window.claude.use('downloads').then(d => { downloadsCap = d || null; }).catch(() => {});
   }
   $('#exportBtn').addEventListener('click', async () => {
-    const raw = JSON.parse(JSON.stringify(data)); raw.settings.apiKey = ''; // nunca exportar a chave
+    const raw = JSON.parse(JSON.stringify(data)); raw.settings.apiKey = ''; raw.settings.ghToken = ''; // nunca exportar chaves
     const out = { exportado: new Date().toISOString(), notas: cards.filter(c => data.notes[c.id]).map(c => ({ pergunta: c.q, nota: data.notes[c.id] })), raw };
     const json = JSON.stringify(out, null, 2);
     const filename = `cartoes-tap-notas-${new Date().toISOString().slice(0, 10)}.json`;
@@ -501,6 +551,190 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
       Object.assign(data.notes, r.notes || {}); Object.assign(data.snooze, r.snooze || {});
       persist(); toast('Notas importadas ✓'); openPanel();
     } catch { toast('Ficheiro inválido'); }
+  });
+
+  // ---------- GitHub: ler e gravar o cards.md ----------
+  const b64dec = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g, '')), ch => ch.charCodeAt(0)));
+  const b64enc = s => {
+    const b = new TextEncoder().encode(s); let bin = '';
+    for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
+    return btoa(bin);
+  };
+  async function gh(path, opts = {}) {
+    if (!/^[\w.-]+\/[\w.-]+$/.test(S.ghRepo)) throw new Error('Repositório inválido (usa utilizador/repositório)');
+    let res;
+    try {
+      res = await fetch(`https://api.github.com/repos/${S.ghRepo}/contents/cards.md${path}`, {
+        cache: 'no-store', ...opts,
+        headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${S.ghToken}`, ...(opts.body ? { 'Content-Type': 'application/json' } : {}) },
+      });
+    } catch { throw new Error(navigator.onLine ? 'Falhou a ligação ao GitHub' : 'Sem internet'); }
+    if (res.ok) return res.json();
+    const err = new Error({
+      401: 'Token GitHub inválido ou expirado',
+      403: 'O token não tem permissão (precisa de Contents: Read and write)',
+      404: `Não encontrei cards.md em ${S.ghRepo} (${S.ghBranch}) — ou o token não tem acesso a este repositório`,
+      409: 'O ficheiro mudou entretanto no GitHub',
+    }[res.status] || `Erro GitHub ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+  async function ghFile() {
+    const f = await gh(`?ref=${encodeURIComponent(S.ghBranch)}`);
+    if (typeof f.content !== 'string' || !f.sha) throw new Error('Resposta inesperada do GitHub');
+    return { sha: f.sha, text: b64dec(f.content) };
+  }
+  // Troca a linha do cartão no cards.md do GitHub; devolve a linha antiga
+  async function commitLine(oldId, newLine, msg, tries = 2) {
+    const f = await ghFile();
+    const eol = f.text.includes('\r\n') ? '\r\n' : '\n';
+    const lines = f.text.split(/\r?\n/);
+    const i = lines.findIndex(l => parseLine(l)?.id === oldId);
+    if (i < 0) throw new Error('Este cartão já não existe no GitHub (foi mudado noutro sítio). Fecha e volta a abrir a app.');
+    const oldLine = lines[i];
+    lines[i] = newLine;
+    try {
+      await gh('', { method: 'PUT', body: JSON.stringify({ message: msg, content: b64enc(lines.join(eol)), sha: f.sha, branch: S.ghBranch }) });
+    } catch (e) {
+      if (e.status === 409 && tries > 1) return commitLine(oldId, newLine, msg, tries - 1);
+      throw e;
+    }
+    return oldLine;
+  }
+
+  // ---------- Todos os cartões: lista e editor ----------
+  const lib = $('#library');
+  const fold = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  let editId = null, libScroll = 0, libNoteT;
+
+  function openLib(id) {
+    const counts = {}; cards.forEach(c => counts[c.theme] = (counts[c.theme] || 0) + 1);
+    const cur = $('#libTheme').value;
+    $('#libTheme').innerHTML = `<option value="">Todos os temas</option>` +
+      Object.keys(counts).map(t => `<option value="${t}">${esc(LABEL[t] || t)} (${counts[t]})</option>`).join('');
+    $('#libTheme').value = counts[cur] ? cur : '';
+    lib.classList.add('open'); lib.setAttribute('aria-hidden', 'false');
+    if (id) openEditor(id); else showList();
+  }
+  function closeLib() {
+    if (!lib.classList.contains('open')) return;
+    lib.classList.remove('open'); lib.setAttribute('aria-hidden', 'true');
+    document.activeElement && document.activeElement.blur();
+    editId = null;
+    refreshCard();
+  }
+  $('#closeLib').addEventListener('click', closeLib);
+  lib.addEventListener('click', e => { if (e.target === lib) closeLib(); });
+
+  function showList() {
+    editId = null;
+    $('#libTitle').textContent = 'Cartões';
+    $('#libEdit').hidden = true; $('#libList').hidden = false;
+    renderList();
+    $('#libIn').scrollTop = libScroll;
+  }
+  function cardStatus(c) {
+    const s = data.snooze[c.id];
+    return s === -1 ? '✓ dominado' : s > Date.now() ? '⏱ adiado' : '';
+  }
+  function renderList() {
+    const q = fold($('#libSearch').value.trim()), th = $('#libTheme').value, show = $('#libShow').value;
+    const list = cards.filter(c =>
+      (!th || c.theme === th) &&
+      (show !== 'notes' || data.notes[c.id]) &&
+      (show !== 'unseen' || !data.seen[c.id]) &&
+      (show !== 'hidden' || cardStatus(c)) &&
+      (!q || fold(`${c.q} ${c.a} ${data.notes[c.id] || ''}`).includes(q)));
+    $('#libCount').textContent = `${list.length} de ${cards.length} cartões`;
+    $('#libRows').innerHTML = list.map(c => {
+      const n = data.seen[c.id] || 0, st = cardStatus(c);
+      return `<button class="lib-row" data-id="${c.id}" style="--theme:${THEMES[c.theme] || '#999'}">
+        <b>${esc(c.q)}</b>
+        <span>${esc(LABEL[c.theme] || c.theme)} · ${c.prio} · ${n ? `visto ${n}×` : 'nunca visto'}${data.notes[c.id] ? ' · <em>✎ nota</em>' : ''}${st ? ' · ' + st : ''}</span>
+      </button>`;
+    }).join('') || '<p class="note">Nenhum cartão encontrado.</p>';
+  }
+  $('#libSearch').addEventListener('input', renderList);
+  $('#libTheme').addEventListener('change', renderList);
+  $('#libShow').addEventListener('change', renderList);
+  $('#libRows').addEventListener('click', e => {
+    const b = e.target.closest('.lib-row'); if (!b) return;
+    libScroll = $('#libIn').scrollTop;
+    openEditor(b.dataset.id);
+  });
+  $('#libBack').addEventListener('click', showList);
+
+  function openEditor(id) {
+    const c = cards.find(x => x.id === id); if (!c) return;
+    editId = id;
+    $('#libTitle').textContent = 'Editar cartão';
+    $('#libList').hidden = true; $('#libEdit').hidden = false;
+    $('#editFlags').innerHTML = [`<span class="flag" style="background:${THEMES[c.theme] || '#999'};color:#fff">${esc(LABEL[c.theme] || c.theme)} · ${c.prio}</span>`]
+      .concat(c.flags.map(f => `<span class="flag ${esc(f)}">${esc(f)}</span>`))
+      .concat(`<span class="flag">${data.seen[c.id] ? `visto ${data.seen[c.id]}×` : 'nunca visto'}</span>`)
+      .concat(cardStatus(c) ? `<span class="flag">${cardStatus(c)}</span>` : []).join('');
+    $('#editQ').value = c.q;
+    $('#editA').value = c.a;
+    $('#editNotes').value = data.notes[c.id] || '';
+    $('#editNoteSaved').textContent = '';
+    $('#editHint').textContent = S.ghToken ? '' : 'Para gravar pergunta e resposta no GitHub, mete o token em ☰ ▸ GitHub. As notas guardam-se sempre aqui.';
+    refreshSave();
+    $('#libIn').scrollTop = 0;
+  }
+  const clean = s => s.replace(/\s*\n+\s*/g, ' ').trim(); // cada cartão é uma linha do cards.md
+  function refreshSave() {
+    const c = cards.find(x => x.id === editId); if (!c) return;
+    const changed = clean($('#editQ').value) !== c.q || clean($('#editA').value) !== c.a;
+    $('#editSave').disabled = !changed;
+    $('#editSave').textContent = changed ? 'Guardar no GitHub' : 'Sem alterações';
+  }
+  $('#editQ').addEventListener('input', refreshSave);
+  $('#editA').addEventListener('input', refreshSave);
+  $('#editNotes').addEventListener('input', e => {
+    const id = editId; if (!id) return;
+    clearTimeout(libNoteT);
+    const v = e.target.value; // lido já: o editor pode mudar de cartão antes de gravar
+    libNoteT = setTimeout(() => {
+      if (v.trim()) data.notes[id] = v; else delete data.notes[id];
+      persist(); $('#editNoteSaved').textContent = 'guardado ✓';
+    }, 400);
+  });
+
+  $('#editSave').addEventListener('click', async () => {
+    const c = cards.find(x => x.id === editId); if (!c) return;
+    if (!S.ghToken) {
+      closeLib(); openPanel(); toast('Mete o token do GitHub');
+      setTimeout(() => { $('#ghToken').scrollIntoView({ block: 'center' }); $('#ghToken').focus(); }, 350);
+      return;
+    }
+    const q = clean($('#editQ').value), a = clean($('#editA').value);
+    if (!q) { toast('A pergunta não pode ficar vazia'); return; }
+    const line = [`- **${q}**`, a, `_[${c.tags}]_`].filter(Boolean).join(' ');
+    const p = parseLine(line);
+    // a linha tem de voltar a ler-se igual, senão estragava o cards.md
+    if (!p || p.q !== q || p.a !== a) { toast('Texto inválido: evita ** e _[ … ]_'); return; }
+    if (p.id !== c.id && cards.some(x => x.id === p.id)) { toast('Já existe um cartão com esta pergunta'); return; }
+
+    const btn = $('#editSave'); btn.disabled = true; btn.textContent = 'A gravar no GitHub…';
+    try {
+      const oldLine = await commitLine(c.id, line, `Editar cartão: ${q.length > 60 ? q.slice(0, 57) + '…' : q}`);
+      const oldId = c.id;
+      if (p.id !== oldId) { // notas, vistos e adiados seguem a pergunta nova
+        for (const k of ['notes', 'seen', 'snooze']) if (data[k][oldId] !== undefined) { data[k][p.id] = data[k][oldId]; delete data[k][oldId]; }
+        if (chats[oldId]) { chats[p.id] = chats[oldId]; delete chats[oldId]; }
+      }
+      Object.assign(c, { id: p.id, q: p.q, a: p.a, line });
+      data.pending.push({ from: oldLine, to: line, at: Date.now() });
+      persist();
+      editId = p.id;
+      $('#editQ').value = p.q; $('#editA').value = p.a;
+      toast('✓ Gravado no GitHub');
+      $('#editHint').textContent = 'Gravado. Aqui já aparece; noutros aparelhos quando o GitHub Pages atualizar (1-2 min).';
+    } catch (e) {
+      toast('Não gravou: ' + e.message);
+      $('#editHint').textContent = 'Não gravou: ' + e.message;
+    }
+    refreshSave();
   });
 
   // ---------- Música ----------
@@ -547,7 +781,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     let md = '';
     try { md = await (await fetch('cards.md', { cache: 'no-cache' })).text(); }
     catch { try { md = await (await caches.match('cards.md')).text(); } catch {} }
-    cards = parse(md);
+    cards = parse(applyPending(md));
     if (!cards.length) { $('#deck').innerHTML = '<div class="end"><h2>Não consegui ler cards.md</h2><p>Abre a app através do GitHub Pages (ou de um servidor), não a partir do ficheiro.</p></div>'; return; }
     buildDeck(); render(0);
   }
