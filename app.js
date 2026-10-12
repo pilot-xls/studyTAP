@@ -102,18 +102,33 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     idx = 0;
   }
 
-  // Cartões adiados cujo tempo já passou voltam a entrar no baralho
+  // Cartões adiados cujo tempo já passou voltam a entrar no baralho (respeitando tema e prioridade)
   function requeueExpired() {
     const now = Date.now(), inDeck = new Set(deck.slice(idx).map(c => c.id));
     const th = new Set(activeThemes());
+    let n = 0, changed = false;
     for (const [id, until] of Object.entries(data.snooze)) {
       if (until > 0 && until <= now) {
-        delete data.snooze[id];
+        delete data.snooze[id]; changed = true;
         const c = cards.find(x => x.id === id);
-        if (c && th.has(c.theme) && !inDeck.has(id)) deck.splice(Math.min(idx + 2, deck.length), 0, c);
+        if (c && th.has(c.theme) && (S.prio === 'all' || c.prio === S.prio) && !inDeck.has(id)) {
+          deck.splice(Math.min(idx + 2, deck.length), 0, c); n++;
+        }
       }
     }
+    if (changed) persist();
+    return n;
   }
+  // Sem depender de deslizar: verifica de 30 em 30 s e ao voltar à app
+  function checkSnoozed() {
+    const wasEnd = idx >= deck.length;
+    const n = requeueExpired();
+    if (!n) return;
+    if (wasEnd) { render(1); toast('⏱ Voltou um cartão adiado'); }
+    else { updateProgress(); toast('⏱ Voltou um cartão adiado'); }
+  }
+  setInterval(checkSnoozed, 30000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkSnoozed(); });
 
   // ---------- Render ----------
   const esc = s => s.replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));

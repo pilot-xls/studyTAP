@@ -1,5 +1,5 @@
 /* Service worker: funciona offline. Muda a VERSION sempre que atualizares a app. */
-const VERSION = 'tapcards-v5';
+const VERSION = 'tapcards-v6';
 const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'music.js', 'cards.md', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
