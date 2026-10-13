@@ -112,9 +112,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .stage {
   position: fixed; inset: 0; z-index: 2;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: calc(64px + var(--safe-top)) 16px calc(40px + var(--safe-bot));
+  padding: calc(60px + var(--safe-top)) 16px calc(16px + var(--safe-bot));
 }
-.deck { position: relative; width: min(100%, 440px); height: min(62vh, 520px); }
+.deck { position: relative; width: min(100%, 440px); flex: 1; min-height: 0; max-height: 780px; }
 .card {
   position: absolute; inset: 0;
   background: var(--paper); color: var(--ink);
@@ -225,6 +225,9 @@ textarea, input[type=password], input[type=search], input:not([type]), select {
   width: 100%; font: inherit; font-size: 16px; color: var(--ink);
   border: 1px solid #e3d9c6; background: #fffdf8; border-radius: 12px; padding: 10px 12px; resize: vertical;
 }
+textarea { user-select: text; -webkit-user-select: text; }
+#notes { min-height: 38dvh; white-space: pre; overflow: auto; resize: vertical; font-size: 15px; line-height: 1.45; }
+#editNotes { white-space: pre; overflow: auto; min-height: 20dvh; }
 textarea:focus, input:focus, select:focus { outline: 2px solid var(--amber); border-color: transparent; }
 .quick { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
 .quick button {
@@ -362,5 +365,4 @@ textarea:focus, input:focus, select:focus { outline: 2px solid var(--amber); bor
   .card.out-next, .card.out-prev, .card.in { animation-duration: .01s; }
 }
 @media (min-width: 700px) {
-  .deck { height: min(62vh, 480px); }
 }
