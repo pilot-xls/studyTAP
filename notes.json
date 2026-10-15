@@ -1,5 +1,5 @@
 {
-  "atualizado": "2026-10-15T09:07:53.112Z",
+  "atualizado": "2026-10-15T09:17:09.493Z",
   "notes": {
     "kjiplw": "Gradiente mínimo: 2,5% (PANS-OPS), salvo se a carta publicar outro valor.\n",
     "mh0jso": "X2 -8% =1,84 km/h",
@@ -19,6 +19,7 @@
     "13d1b7k": "Exemplo para entrevista: nevoeiro em Lisboa (ameaça) -> aproximação não estabilizada (erro) -> descida abaixo do perfil (UAS) -> go-around (recuperação).",
     "1vhnwga": "Regra única: Rate N = 3 × N °/s\nRate 1 -> 3°/s  -> 180°/min -> 360° em 2 min  (standard rate)\nRate 2 -> 6°/s  -> 360°/min -> 360° em 1 min\nRate 3 -> 9°/s  -> 540°/min -> 360° em 40 s\n\nbank aproximado em Rate 1 ≈ TAS/10 + 7 (ex.: 120 kt -> 12 + 7 = ~19°).",
     "106201g": "Mach = TAS / LSS\n   ↓\nTAS = Mach × LSS\n   ↓\nTAS = 0,80 × 600 = 480 kt\n",
-    "1xp3pcp": "Sao vermelhas e atc clear mas so quando a luz desliga é que posso avançar "
+    "1xp3pcp": "Sao vermelhas e atc clear mas so quando a luz desliga é que posso avançar ",
+    "1ybnixj": "Dedo = offset/teardrop"
   }
 }
