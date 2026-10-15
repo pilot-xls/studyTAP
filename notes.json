@@ -1,5 +1,5 @@
 {
-  "atualizado": "2026-10-15T09:28:36.856Z",
+  "atualizado": "2026-10-15T09:38:21.403Z",
   "notes": {
     "kjiplw": "Gradiente mínimo: 2,5% (PANS-OPS), salvo se a carta publicar outro valor.\n",
     "mh0jso": "X2 -8% =1,84 km/h",
@@ -21,6 +21,7 @@
     "106201g": "Mach = TAS / LSS\n   ↓\nTAS = Mach × LSS\n   ↓\nTAS = 0,80 × 600 = 480 kt\n",
     "1xp3pcp": "Sao vermelhas e atc clear mas so quando a luz desliga é que posso avançar ",
     "1ybnixj": "Dedo = offset/teardrop",
-    "1hca6dc": "DME (Distance Measuring Equipment)"
+    "1hca6dc": "DME (Distance Measuring Equipment)",
+    "3vaka8": "https://www.century-of-flight.net/10-runway-airport-taxiway-lights-explained/"
   }
 }
