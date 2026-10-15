@@ -850,6 +850,11 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
   init();
 
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    // versão nova do service worker → recarrega uma vez para aplicar o CSS/JS novo
+    if (navigator.serviceWorker.controller) {
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => { if (!reloaded) { reloaded = true; location.reload(); } });
+    }
+    navigator.serviceWorker.register('sw.js').then(r => r.update()).catch(() => {});
   }
 })();
