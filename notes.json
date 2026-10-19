@@ -1,5 +1,5 @@
 {
-  "atualizado": "2026-10-19T18:45:24.377Z",
+  "atualizado": "2026-10-19T18:46:48.516Z",
   "notes": {
     "kjiplw": "Gradiente mínimo: 2,5% (PANS-OPS), salvo se a carta publicar outro valor.\n",
     "mh0jso": "X2 -8% =1,84 km/h",
@@ -23,6 +23,6 @@
     "1ybnixj": "Dedo = offset/teardrop",
     "1hca6dc": "DME (Distance Measuring Equipment)",
     "3vaka8": "https://www.century-of-flight.net/10-runway-airport-taxiway-lights-explained/",
-    "ufbuva": "BPR alto -> muito ar, jato lento -> eficiente em cruzeiro subsónico\nBPR baixo -> pouco ar, jato rápido -> bom em alta velocidade / supersónico\n\nBPR ALTO (≈5–12, A320neo, B787)\n\t•\t✅ Maior eficiência propulsiva, menor SFC e menos ruído.\n\t•\t✅ Muito thrust à descolagem.\n\t•\t❌ Fan grande, com mais peso, mais arrasto da nacelle e mais altura ao solo necessária.\n\t•\t❌ Perde mais thrust com a altitude e a velocidade.\n\nBPR BAIXO (≈0–1, caças, Concorde)\n\n\t•\t✅ Motor estreito, com pouco arrasto frontal.\n\t•\t✅ Bom thrust a alta velocidade e supersónico.\n\t•\t✅ Permite pós-combustão (afterburner).\n\t•\t❌ SFC alto e muito ruído.\n\t•\t❌ Pouco eficiente a baixa velocidade."
+    "ufbuva": "BPR alto -> muito ar, jato lento -> eficiente em cruzeiro subsónico\nBPR baixo -> pouco ar, jato rápido -> bom em alta velocidade / supersónico\n\nBPR alto -> maior eficiência propulsiva -> menos combustível por thrust -> SFC baixo\n\nBPR ALTO (≈5–12, A320neo, B787)\n\t•\t✅ Maior eficiência propulsiva, menor SFC e menos ruído.\n\t•\t✅ Muito thrust à descolagem.\n\t•\t❌ Fan grande, com mais peso, mais arrasto da nacelle e mais altura ao solo necessária.\n\t•\t❌ Perde mais thrust com a altitude e a velocidade.\n\nBPR BAIXO (≈0–1, caças, Concorde)\n\n\t•\t✅ Motor estreito, com pouco arrasto frontal.\n\t•\t✅ Bom thrust a alta velocidade e supersónico.\n\t•\t✅ Permite pós-combustão (afterburner).\n\t•\t❌ SFC alto e muito ruído.\n\t•\t❌ Pouco eficiente a baixa velocidade."
   }
 }
