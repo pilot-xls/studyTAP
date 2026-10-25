@@ -1,5 +1,5 @@
 {
-  "atualizado": "2026-10-19T18:50:47.715Z",
+  "atualizado": "2026-10-25T06:47:07.959Z",
   "notes": {
     "kjiplw": "Gradiente mínimo: 2,5% (PANS-OPS), salvo se a carta publicar outro valor.\n",
     "mh0jso": "X2 -8% =1,84 km/h",
@@ -24,6 +24,7 @@
     "1hca6dc": "DME (Distance Measuring Equipment)",
     "3vaka8": "https://www.century-of-flight.net/10-runway-airport-taxiway-lights-explained/",
     "ufbuva": "BPR alto -> muito ar, jato lento -> eficiente em cruzeiro subsónico\nBPR baixo -> pouco ar, jato rápido -> bom em alta velocidade / supersónico\n\nBPR alto -> maior eficiência propulsiva -> menos combustível por thrust -> SFC baixo\n\nBPR ALTO (≈5–12, A320neo, B787)\n\t•\t✅ Maior eficiência propulsiva, menor SFC e menos ruído.\n\t•\t✅ Muito thrust à descolagem.\n\t•\t❌ Fan grande, com mais peso, mais arrasto da nacelle e mais altura ao solo necessária.\n\t•\t❌ Perde mais thrust com a altitude e a velocidade.\n\nBPR BAIXO (≈0–1, caças, Concorde)\n\n\t•\t✅ Motor estreito, com pouco arrasto frontal.\n\t•\t✅ Bom thrust a alta velocidade e supersónico.\n\t•\t✅ Permite pós-combustão (afterburner).\n\t•\t❌ SFC alto e muito ruído.\n\t•\t❌ Pouco eficiente a baixa velocidade.",
-    "qip66w": "RVR reportada < mínimo → não passar 1000 ft AAL/FAF → espera/alternante\nRVR ≥ mínimo → continuar → no DA/MDA: referências visuais? → sim: aterrar / não: borrego"
+    "qip66w": "RVR reportada < mínimo → não passar 1000 ft AAL/FAF → espera/alternante\nRVR ≥ mínimo → continuar → no DA/MDA: referências visuais? → sim: aterrar / não: borrego",
+    "1ixjt0a": "\n| Código (RwyCC) | Categoria | Coeficiente ($\\mu$) | Impacto na Aeronave |\n| :---: | :--- | :---: | :--- |\n| **6** | Good (Bom) | > 0.40 | Desaceleração normal e sem desvios na trajetória. |\n| **5** | Good to Medium (Bom a Médio) | 0.36 a 0.39 | Travagem ligeiramente reduzida; controlo direcional total. |\n| **4** | Medium (Médio) | 0.30 a 0.35 | Redução percetível na capacidade de paragem. |\n| **3** | Medium to Poor (Médio a Ruim) | 0.26 a 0.29 | Distância de paragem visivelmente aumentada. |\n| **2** | **Poor (Ruim)** | **0.21 a 0.25** | **Força de travagem muito baixa; elevado risco de derrapagem.** |\n| **1** | Very Poor (Muito Ruim) | <= 0.20 | Controlo direcional instável; desempenho marginal. |\n| **0** | Nil (Nulo) | Unreliable | Incapacidade de parar ou controlar; pista encerrada. |\n"
   }
 }
