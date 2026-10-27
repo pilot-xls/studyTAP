@@ -5,9 +5,11 @@ PWA de estudo para a entrevista e o teste teórico de piloto da TAP: 316 cartõe
 ## Como se usa
 
 ```
-Toque no ecrã ──────────► próximo cartão
-Arrastar ← / →  ────────► próximo / anterior
-Arrastar ↑  ────────────► resposta + as tuas notas + Claude + adiar
+Toque no ecrã / Arrastar ↑ ─► resposta + as tuas notas + Claude + adiar
+   └─ 3 botões no fundo (obrigatório para passar ao próximo cartão):
+        🟢 Fácil  ·  🟡 Tive de pensar  ·  🔴 Não sabia   (teclado: 1 · 2 · 3)
+        └─► grava a avaliação e passa ao próximo; 🔴 volta daqui a ~5 cartões
+Arrastar ← / →  ────────► próximo (só depois de avaliar) / anterior
    ├─ ⏱ 10 min / 1 h / 1 dia / 7 dias ─► o cartão volta depois desse tempo
    └─ ✓ Já sei ────────────────────────► não volta a aparecer
 ♪ (topo) ───────────────► música de estudo calma (gerada na app, funciona offline)
@@ -15,7 +17,14 @@ Arrastar ↑  ────────────► resposta + as tuas notas +
    └─ 🗂 Ver e editar todos os cartões ─► lista com pesquisa ─► editar pergunta, resposta e notas
 ```
 
-Os cartões P1 aparecem sempre primeiro, baralhados.
+### Ordem de cada voo
+
+```
+🔴 Não sabia ─► 🟡 Tive de pensar ─► nunca vistos ─► vistos sem avaliação ─► 🟢 Fácil (revisão no fim)
+   (dentro de cada grupo: P1 antes de P2, baralhados)
+```
+
+Em ☰ ▸ **Estudo** podes escolher «Só difíceis» (🔴 + 🟡) para estudar apenas o que te custa. A lista de cartões também filtra por avaliação. As avaliações ficam no telemóvel (entram na cópia de segurança: Exportar / Importar).
 
 O avião no topo mostra quantas perguntas **diferentes** já viste de todos os cartões (ex.: `120/316`), desde sempre — não só hoje nem só neste voo. Em ☰ vês o mesmo número, a percentagem e as passagens no total.
 
