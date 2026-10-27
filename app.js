@@ -293,7 +293,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     if (e.target.matches('input, textarea, select')) return;
     const open = $('#sheet').classList.contains('open') || $('#library').classList.contains('open') || $('#panel').classList.contains('open');
     if (e.key === 'Escape') { closeSheet(); closePanel(); closeLib(); }
-    else if ('123'.includes(e.key) && e.key.length === 1 && !$('#library').classList.contains('open') && !$('#panel').classList.contains('open')) rateCard({ 1: 'f', 2: 'p', 3: 'n' }[e.key]); // teclado: 1 fácil · 2 pensei · 3 não sabia
+    else if ('123'.includes(e.key) && e.key.length === 1 && !e.repeat && !$('#library').classList.contains('open') && !$('#panel').classList.contains('open')) rateCard({ 1: 'f', 2: 'p', 3: 'n' }[e.key]); // teclado: 1 fácil · 2 pensei · 3 não sabia
     else if (open) return;
     else if (e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); next(); }
     else if (e.key === 'ArrowLeft') prev();
