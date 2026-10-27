@@ -41,6 +41,8 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
   // Avaliação de cada cartão: f = fácil, p = tive de pensar, n = não sabia
   const RATE = { f: { icon: '🟢', label: 'Fácil' }, p: { icon: '🟡', label: 'Tive de pensar' }, n: { icon: '🔴', label: 'Não sabia' } };
   const lvl = c => (data.rate[c.id] && data.rate[c.id].l) || '';
+  const nImgs = id => (data.imgs[id] || []).length;
+  const hasNote = id => !!(data.notes[id] || nImgs(id)); // nota de texto e/ou imagens
   const persist = () => store.save(data);
   // Sincronização automática das notas: 20 s depois de sair do cartão, só se houve alterações
   const SYNC_DELAY = 20000;
@@ -155,7 +157,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
   const pad3 = n => String(n).padStart(3, '0');
 
   function cardHTML(c, n, total) {
-    const note = (data.notes[c.id] || (data.imgs[c.id] || []).length) ? `<span class="tag-note">✎ nota${(data.imgs[c.id] || []).length ? ' · 🖼' : ''}</span>` : `<div class="barcode"></div>`;
+    const note = hasNote(c.id) ? `<span class="tag-note">✎ nota${nImgs(c.id) ? ' · 🖼' : ''}</span>` : `<div class="barcode"></div>`;
     return `
       <div class="stub"><span>Cartão de embarque</span><b>${pad3(n)}/${pad3(total)}</b></div>
       <div class="meta">
@@ -562,7 +564,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
       <div class="stat"><b>${data.streak}</b><span>dias seguidos</span></div>
       <div class="stat"><b>${mastered}</b><span>dominados</span></div>
       <div class="stat"><b>${later}</b><span>adiados</span></div>
-      <div class="stat"><b>${Object.keys(data.notes).length}</b><span>com notas</span></div>
+      <div class="stat"><b>${new Set([...Object.keys(data.notes), ...Object.keys(data.imgs).filter(nImgs)]).size}</b><span>com notas</span></div>
       <div class="stat"><b>${rc.n}</b><span>🔴 não sabia</span></div>
       <div class="stat"><b>${rc.p}</b><span>🟡 tive de pensar</span></div>
       <div class="stat"><b>${rc.f}</b><span>🟢 fácil</span></div>`;
@@ -749,6 +751,8 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
       const path = `img/${id}-${Date.now().toString(36)}.jpg`;
       await gh('', { method: 'PUT', body: JSON.stringify({ message: 'Adicionar imagem', content: await blobB64(b), branch: S.ghBranch }) }, path);
       blobs[path] = URL.createObjectURL(b);
+      // guarda já na cache do service worker, sob o endereço definitivo: sobrevive a recarregar a app e funciona offline
+      try { const c = await caches.open('tapcards-img'); await c.put(new URL(path, location.href).href, new Response(b, { headers: { 'Content-Type': 'image/jpeg' } })); } catch {}
       (data.imgs[id] = data.imgs[id] || []).push(path);
       markNotes();
       if (imgCardId(sel) === id) renderImgs(sel, id);
@@ -839,7 +843,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     const q = fold($('#libSearch').value.trim()), th = $('#libTheme').value, show = $('#libShow').value;
     const list = cards.filter(c =>
       (!th || c.theme === th) &&
-      (show !== 'notes' || data.notes[c.id]) &&
+      (show !== 'notes' || hasNote(c.id)) &&
       (show !== 'unseen' || !data.seen[c.id]) &&
       (show !== 'hidden' || cardStatus(c)) &&
       (show !== 'diff' || lvl(c) === 'n' || lvl(c) === 'p') &&
@@ -850,7 +854,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
       const n = data.seen[c.id] || 0, st = cardStatus(c);
       return `<button class="lib-row" data-id="${c.id}" style="--theme:${THEMES[c.theme] || '#999'}">
         <b>${esc(c.q)}</b>
-        <span>${esc(LABEL[c.theme] || c.theme)} · ${c.prio} · ${n ? `visto ${n}×` : 'nunca visto'}${lvl(c) ? ' · ' + RATE[lvl(c)].icon + ' ' + RATE[lvl(c)].label : ''}${data.notes[c.id] ? ' · <em>✎ nota</em>' : ''}${st ? ' · ' + st : ''}</span>
+        <span>${esc(LABEL[c.theme] || c.theme)} · ${c.prio} · ${n ? `visto ${n}×` : 'nunca visto'}${lvl(c) ? ' · ' + RATE[lvl(c)].icon + ' ' + RATE[lvl(c)].label : ''}${hasNote(c.id) ? ' · <em>✎ nota' + (nImgs(c.id) ? ' 🖼' : '') + '</em>' : ''}${st ? ' · ' + st : ''}</span>
       </button>`;
     }).join('') || '<p class="note">Nenhum cartão encontrado.</p>';
   }
