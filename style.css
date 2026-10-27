@@ -260,6 +260,25 @@ textarea:focus, input:focus, select:focus { outline: 2px solid var(--amber); bor
   background: var(--mint); color: #08392a; font-weight: 900; font-size: 15px;
 }
 .back { width: 100%; margin-top: 8px; }
+
+/* ---------- Avaliação: 3 botões fixos no fundo da folha ---------- */
+.rate {
+  flex: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  padding: 10px 14px calc(12px + var(--safe-bot)); background: var(--paper); border-top: 1px solid #ece3d2;
+}
+.rate button {
+  display: grid; justify-items: center; gap: 2px; border: 2px solid transparent; border-radius: 14px; padding: 10px 4px;
+  font: inherit; font-weight: 900; font-size: 14px; line-height: 1.2; color: var(--ink);
+}
+.rate button span { font-size: 18px; }
+.rate .r-f { background: #dcf6ec; }
+.rate .r-p { background: #fff1d6; }
+.rate .r-n { background: #ffe1e4; }
+.rate button.sel { border-color: var(--ink); }
+.rate button:active { transform: scale(.97); }
+.rate.nudge button { animation: nudge .6s ease-out .35s 1; }
+@keyframes nudge { 30% { transform: scale(1.07); } 60% { transform: scale(.98); } }
+@media (prefers-reduced-motion: reduce) { .rate.nudge button { animation: none; } }
 .block h3 .mini {
   border: 1px solid #e3d9c6; background: var(--paper); border-radius: 999px; padding: 4px 10px;
   font-size: 12px; font-weight: 800; letter-spacing: 0; text-transform: none; color: var(--ink);

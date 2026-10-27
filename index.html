@@ -36,7 +36,7 @@
 
 <main class="stage" id="stage">
   <div class="deck" id="deck"></div>
-  <p class="hint" id="hint">Toca para o próximo · arrasta ↑ para resposta e ajuda</p>
+  <p class="hint" id="hint">Toca ou arrasta ↑ para ver a resposta · avalia para passar ao próximo</p>
 </main>
 
 <!-- Folha de resposta / notas / Claude -->
@@ -88,6 +88,12 @@
       <button class="ghost back" id="closeSheet">Voltar ao cartão</button>
     </div>
   </div>
+  <!-- Avaliação obrigatória para passar ao próximo cartão -->
+  <div class="rate" id="rate" role="group" aria-label="Como correu este cartão?">
+    <button class="r-f" data-rate="f"><span>🟢</span>Fácil</button>
+    <button class="r-p" data-rate="p"><span>🟡</span>Tive de pensar</button>
+    <button class="r-n" data-rate="n"><span>🔴</span>Não sabia</button>
+  </div>
 </section>
 
 <!-- Menu / definições -->
@@ -117,6 +123,13 @@
       <button data-prio="P1">Só P1</button>
       <button data-prio="P2">Só P2</button>
     </div>
+
+    <h3>Estudo</h3>
+    <div class="seg" id="studySeg">
+      <button data-study="all">Difíceis primeiro</button>
+      <button data-study="hard">Só difíceis (🔴 🟡)</button>
+    </div>
+    <p class="note">Ordem de cada voo: 🔴 não sabia → 🟡 tive de pensar → nunca vistos → 🟢 fácil (no fim).</p>
 
     <h3>Música</h3>
     <div class="row">
@@ -172,6 +185,10 @@
           <option value="">Todos</option>
           <option value="notes">Com notas</option>
           <option value="unseen">Nunca vistos</option>
+          <option value="diff">Difíceis (🔴 + 🟡)</option>
+          <option value="n">🔴 Não sabia</option>
+          <option value="p">🟡 Tive de pensar</option>
+          <option value="f">🟢 Fácil</option>
           <option value="hidden">Dominados / adiados</option>
         </select>
       </div>

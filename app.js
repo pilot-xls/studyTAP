@@ -33,10 +33,14 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     const seg = location.pathname.split('/').filter(Boolean)[0];
     return `${h[1]}/${seg && !seg.includes('.') ? seg : h[1] + '.github.io'}`;
   }
-  const data = Object.assign({ notes: {}, snooze: {}, seen: {}, pending: [], notesDirty: false, day: '', today: 0, streak: 0, total: 0 }, store.load());
+  const data = Object.assign({ notes: {}, snooze: {}, seen: {}, rate: {}, pending: [], notesDirty: false, day: '', today: 0, streak: 0, total: 0 }, store.load());
   // definições novas ganham valor por omissão mesmo em dados antigos
-  const S = data.settings = Object.assign({ mode: 'all', themes: null, prio: 'all', vol: .45, music: false, apiKey: '', model: 'claude-sonnet-5-5',
+  const S = data.settings = Object.assign({ mode: 'all', themes: null, prio: 'all', study: 'all', vol: .45, music: false, apiKey: '', model: 'claude-sonnet-5-5',
     ghToken: '', ghRepo: detectRepo(), ghBranch: 'main' }, data.settings);
+
+  // Avaliação de cada cartão: f = fácil, p = tive de pensar, n = não sabia
+  const RATE = { f: { icon: '🟢', label: 'Fácil' }, p: { icon: '🟡', label: 'Tive de pensar' }, n: { icon: '🔴', label: 'Não sabia' } };
+  const lvl = c => (data.rate[c.id] && data.rate[c.id].l) || '';
   const persist = () => store.save(data);
   // Sincronização automática das notas: 20 s depois de sair do cartão, só se houve alterações
   const SYNC_DELAY = 20000;
@@ -59,6 +63,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
   window.addEventListener('online', queueSync);
 
   let cards = [], deck = [], idx = 0, chats = {};
+  let rated = new WeakSet(), moving = false; // cartões já avaliados neste voo (só passas ao próximo depois de avaliar)
 
   // ---------- Leitura dos cartões ----------
   const hash = s => { let h = 5381; for (const c of s) h = ((h << 5) + h + c.codePointAt(0)) | 0; return (h >>> 0).toString(36); };
@@ -96,10 +101,25 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     const th = new Set(activeThemes());
     let pool = cards.filter(c => th.has(c.theme) && !hidden(c));
     if (S.prio !== 'all') pool = pool.filter(c => c.prio === S.prio);
-    const p1 = shuffle(pool.filter(c => c.prio === 'P1'));
-    const p2 = shuffle(pool.filter(c => c.prio !== 'P1'));
-    deck = [...p1, ...p2];
+    if (S.study === 'hard') pool = pool.filter(c => lvl(c) === 'n' || lvl(c) === 'p');
+    // dentro de cada grupo: P1 antes de P2, baralhados
+    const byPrio = a => [...shuffle(a.filter(c => c.prio === 'P1')), ...shuffle(a.filter(c => c.prio !== 'P1'))];
+    // Ordem: não sabia -> tive de pensar -> nunca vistos -> vistos sem avaliação -> fáceis (revisão no fim)
+    deck = [
+      ...byPrio(pool.filter(c => lvl(c) === 'n')),
+      ...byPrio(pool.filter(c => lvl(c) === 'p')),
+      ...byPrio(pool.filter(c => !lvl(c) && !data.seen[c.id])),
+      ...byPrio(pool.filter(c => !lvl(c) && data.seen[c.id])),
+      ...shuffle(pool.filter(c => lvl(c) === 'f')),
+    ];
+    rated = new WeakSet();
     idx = 0;
+  }
+
+  // «Não sabia»: o cartão volta daqui a ~5 cartões, neste voo (cópia, para voltar a ter de ser avaliado)
+  function requeueHard(c) {
+    if (deck.slice(idx + 1).some(x => x.id === c.id)) return;
+    deck.splice(Math.min(idx + 6, deck.length), 0, Object.create(c));
   }
 
   // Cartões adiados cujo tempo já passou voltam a entrar no baralho (respeitando tema e prioridade)
@@ -112,7 +132,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
         delete data.snooze[id]; changed = true;
         const c = cards.find(x => x.id === id);
         if (c && th.has(c.theme) && (S.prio === 'all' || c.prio === S.prio) && !inDeck.has(id)) {
-          deck.splice(Math.min(idx + 2, deck.length), 0, c); n++;
+          deck.splice(Math.min(idx + 2, deck.length), 0, Object.create(c)); n++;
         }
       }
     }
@@ -141,7 +161,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
       <div class="meta">
         <div><small>Tema</small><span>${esc(LABEL[c.theme] || c.theme)}</span></div>
         <div><small>Classe</small><span>${c.prio}</span></div>
-        <div><small>Visto</small><span>${data.seen[c.id] || 0}×</span></div>
+        <div><small>Visto</small><span>${data.seen[c.id] || 0}×${lvl(c) ? ' ' + RATE[lvl(c)].icon : ''}</span></div>
       </div>
       <div class="q">${esc(c.q)}</div>
       <div class="foot">${note}<span class="up-hint">↑ resposta</span></div>`;
@@ -184,7 +204,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     div.className = 'end';
     const none = deck.length === 0;
     div.innerHTML = none
-      ? `<div class="big">🛬</div><h2>Sem cartões aqui</h2><p>Todos os cartões deste filtro estão escondidos ou adiados.</p><button class="primary" id="openMenu2">Mudar filtros</button>`
+      ? `<div class="big">🛬</div><h2>Sem cartões aqui</h2><p>${S.study === 'hard' ? 'Ainda não tens cartões difíceis (🔴 / 🟡) neste filtro.' : 'Todos os cartões deste filtro estão escondidos ou adiados.'}</p><button class="primary" id="openMenu2">Mudar filtros</button>`
       : `<div class="big">🛬</div><h2>Aterragem!</h2><p>${deck.length} cartões revistos neste voo.</p><button class="primary" id="again">Novo voo (baralhar)</button>`;
     el.appendChild(div);
     if (!none) confetti();
@@ -220,7 +240,13 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
   }
 
   function next() {
-    if (idx >= deck.length) return;
+    if (idx >= deck.length || moving) return;
+    // obrigatório avaliar antes de passar: mostra a resposta com os 3 botões
+    if (!rated.has(deck[idx])) {
+      openSheet();
+      const r = $('#rate'); r.classList.remove('nudge'); void r.offsetWidth; r.classList.add('nudge'); // pulso a chamar a atenção para os 3 botões
+      return;
+    }
     countToday();
     idx++;
     requeueExpired();
@@ -264,6 +290,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     if (e.target.matches('input, textarea, select')) return;
     const open = $('#sheet').classList.contains('open') || $('#library').classList.contains('open') || $('#panel').classList.contains('open');
     if (e.key === 'Escape') { closeSheet(); closePanel(); closeLib(); }
+    else if ('123'.includes(e.key) && e.key.length === 1 && $('#sheet').classList.contains('open')) rateCard({ 1: 'f', 2: 'p', 3: 'n' }[e.key]); // teclado: 1 fácil · 2 pensei · 3 não sabia
     else if (open) return;
     else if (e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); next(); }
     else if (e.key === 'ArrowLeft') prev();
@@ -282,6 +309,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
       .concat(c.flags.map(f => `<span class="flag ${esc(f)}">${esc(f)}</span>`)).join('');
     $('#notes').value = data.notes[c.id] || '';
     $('#noteSaved').textContent = '';
+    $('#rate').querySelectorAll('button').forEach(b => b.classList.toggle('sel', b.dataset.rate === lvl(c)));
     renderChat();
     refreshClaudeUI();
     $('#sheetBody').scrollTop = 0;
@@ -325,8 +353,23 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     }, 400);
   });
 
+  // Avaliação: guarda, fecha a folha e passa ao próximo cartão (os «Não sabia» voltam daqui a ~5 cartões)
+  function rateCard(l) {
+    const c = deck[idx]; if (!c || !RATE[l] || moving) return;
+    moving = true;
+    data.rate[c.id] = { l, at: Date.now() };
+    rated.add(c);
+    if (l === 'n') requeueHard(c);
+    persist();
+    closeSheet();
+    toast(`${RATE[l].icon} ${RATE[l].label}${l === 'n' ? ' · volta já a seguir' : ''}`);
+    setTimeout(() => { moving = false; next(); }, 250);
+  }
+  $('#rate').querySelectorAll('button').forEach(b => b.addEventListener('click', () => rateCard(b.dataset.rate)));
+
   sheet.querySelectorAll('[data-snooze]').forEach(b => b.addEventListener('click', () => {
     const c = deck[idx]; if (!c) return;
+    rated.add(c); // adiar / «já sei» também deixam passar
     const ms = +b.dataset.snooze;
     data.snooze[c.id] = ms === -1 ? -1 : Date.now() + ms;
     persist();
@@ -488,6 +531,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     $('#themeChips').querySelectorAll('button').forEach(b => b.onclick = () => { b.classList.toggle('sel'); markMode(null); });
     markMode(S.themes ? null : S.mode);
     $('#prioSeg').querySelectorAll('button').forEach(b => b.classList.toggle('sel', b.dataset.prio === S.prio));
+    $('#studySeg').querySelectorAll('button').forEach(b => b.classList.toggle('sel', b.dataset.study === S.study));
     $('#vol').value = S.vol;
     $('#apiKey').value = S.apiKey;
     $('#model').value = S.model;
@@ -496,6 +540,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     $('#ghBranch').value = S.ghBranch;
     const mastered = Object.values(data.snooze).filter(v => v === -1).length;
     const later = Object.values(data.snooze).filter(v => v > Date.now()).length;
+    const rc = { f: 0, p: 0, n: 0 }; cards.forEach(c => { const l = lvl(c); if (l) rc[l]++; });
     const seen = seenCount(), pct = cards.length ? Math.floor(seen / cards.length * 100) : 0;
     $('#stats').innerHTML = `
       <div class="stat wide"><b>${seen}<small> / ${cards.length}</small></b><span>perguntas diferentes já vistas · ${pct}%</span>
@@ -505,7 +550,10 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
       <div class="stat"><b>${data.streak}</b><span>dias seguidos</span></div>
       <div class="stat"><b>${mastered}</b><span>dominados</span></div>
       <div class="stat"><b>${later}</b><span>adiados</span></div>
-      <div class="stat"><b>${Object.keys(data.notes).length}</b><span>com notas</span></div>`;
+      <div class="stat"><b>${Object.keys(data.notes).length}</b><span>com notas</span></div>
+      <div class="stat"><b>${rc.n}</b><span>🔴 não sabia</span></div>
+      <div class="stat"><b>${rc.p}</b><span>🟡 tive de pensar</span></div>
+      <div class="stat"><b>${rc.f}</b><span>🟢 fácil</span></div>`;
     panel.classList.add('open'); panel.setAttribute('aria-hidden', 'false');
   }
   function closePanel() { panel.classList.remove('open'); panel.setAttribute('aria-hidden', 'true'); queueSync(); }
@@ -522,6 +570,9 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
   });
   $('#prioSeg').querySelectorAll('button').forEach(b => b.onclick = () => {
     $('#prioSeg').querySelectorAll('button').forEach(x => x.classList.toggle('sel', x === b));
+  });
+  $('#studySeg').querySelectorAll('button').forEach(b => b.onclick = () => {
+    $('#studySeg').querySelectorAll('button').forEach(x => x.classList.toggle('sel', x === b));
   });
   $('#vol').addEventListener('input', e => { S.vol = +e.target.value; StudyMusic.setVolume(S.vol); persist(); });
   $('#apiKey').addEventListener('change', e => { S.apiKey = e.target.value.trim(); persist(); });
@@ -556,6 +607,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     if (!sel.length) { toast('Escolhe pelo menos um tema'); return; }
     if (modeBtn) { S.mode = modeBtn.dataset.mode; S.themes = null; } else { S.themes = sel; }
     S.prio = $('#prioSeg .sel')?.dataset.prio || 'all';
+    S.study = $('#studySeg .sel')?.dataset.study || 'all';
     S.apiKey = $('#apiKey').value.trim(); S.model = $('#model').value;
     ['#ghToken', '#ghRepo', '#ghBranch'].forEach(s => $(s).dispatchEvent(new Event('change')));
     persist(); closePanel(); buildDeck(); render(1);
@@ -592,7 +644,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     const f = e.target.files[0]; if (!f) return;
     try {
       const j = JSON.parse(await f.text()); const r = j.raw || j;
-      Object.assign(data.notes, r.notes || {}); Object.assign(data.snooze, r.snooze || {});
+      Object.assign(data.notes, r.notes || {}); Object.assign(data.snooze, r.snooze || {}); Object.assign(data.rate, r.rate || {});
       markNotes(); toast('Notas importadas ✓'); openPanel();
     } catch { toast('Ficheiro inválido'); }
   });
@@ -706,13 +758,15 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
       (show !== 'notes' || data.notes[c.id]) &&
       (show !== 'unseen' || !data.seen[c.id]) &&
       (show !== 'hidden' || cardStatus(c)) &&
+      (show !== 'diff' || lvl(c) === 'n' || lvl(c) === 'p') &&
+      (show !== 'n' || lvl(c) === 'n') && (show !== 'p' || lvl(c) === 'p') && (show !== 'f' || lvl(c) === 'f') &&
       (!q || fold(`${c.q} ${c.a} ${data.notes[c.id] || ''}`).includes(q)));
     $('#libCount').textContent = `${list.length} de ${cards.length} cartões`;
     $('#libRows').innerHTML = list.map(c => {
       const n = data.seen[c.id] || 0, st = cardStatus(c);
       return `<button class="lib-row" data-id="${c.id}" style="--theme:${THEMES[c.theme] || '#999'}">
         <b>${esc(c.q)}</b>
-        <span>${esc(LABEL[c.theme] || c.theme)} · ${c.prio} · ${n ? `visto ${n}×` : 'nunca visto'}${data.notes[c.id] ? ' · <em>✎ nota</em>' : ''}${st ? ' · ' + st : ''}</span>
+        <span>${esc(LABEL[c.theme] || c.theme)} · ${c.prio} · ${n ? `visto ${n}×` : 'nunca visto'}${lvl(c) ? ' · ' + RATE[lvl(c)].icon + ' ' + RATE[lvl(c)].label : ''}${data.notes[c.id] ? ' · <em>✎ nota</em>' : ''}${st ? ' · ' + st : ''}</span>
       </button>`;
     }).join('') || '<p class="note">Nenhum cartão encontrado.</p>';
   }
@@ -782,7 +836,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
       const oldLine = await commitLine(c.id, line, `Editar cartão: ${q.length > 60 ? q.slice(0, 57) + '…' : q}`);
       const oldId = c.id;
       if (p.id !== oldId) { // notas, vistos e adiados seguem a pergunta nova
-        for (const k of ['notes', 'seen', 'snooze']) if (data[k][oldId] !== undefined) { data[k][p.id] = data[k][oldId]; delete data[k][oldId]; }
+        for (const k of ['notes', 'seen', 'snooze', 'rate']) if (data[k][oldId] !== undefined) { data[k][p.id] = data[k][oldId]; delete data[k][oldId]; }
         if (chats[oldId]) { chats[p.id] = chats[oldId]; delete chats[oldId]; }
       }
       Object.assign(c, { id: p.id, q: p.q, a: p.a, line });
