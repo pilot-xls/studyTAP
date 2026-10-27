@@ -276,9 +276,23 @@ textarea:focus, input:focus, select:focus { outline: 2px solid var(--amber); bor
 .rate .r-n { background: #ffe1e4; }
 .rate button.sel { border-color: var(--ink); }
 .rate button:active { transform: scale(.97); }
-.rate.nudge button { animation: nudge .6s ease-out .35s 1; }
-@keyframes nudge { 30% { transform: scale(1.07); } 60% { transform: scale(.98); } }
+.rate.nudge button { animation: ratepulse .6s ease-out .35s 1; }
+@keyframes ratepulse { 30% { transform: scale(1.07); } 60% { transform: scale(.98); } }
 @media (prefers-reduced-motion: reduce) { .rate.nudge button { animation: none; } }
+
+/* os mesmos 3 botões, dentro do cartão */
+.card-rate { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 4px 16px 4px; }
+.card-rate button {
+  display: grid; justify-items: center; gap: 1px; border: 2px solid transparent; border-radius: 14px; padding: 9px 2px;
+  font: inherit; font-weight: 900; font-size: 12.5px; line-height: 1.15; color: var(--ink);
+}
+.card-rate button span { font-size: 17px; }
+.card-rate .r-f { background: #dcf6ec; }
+.card-rate .r-p { background: #fff1d6; }
+.card-rate .r-n { background: #ffe1e4; }
+.card-rate button.sel { border-color: var(--ink); }
+.card-rate button:active { transform: scale(.96); }
+.card.ghost .card-rate { visibility: hidden; }
 .block h3 .mini {
   border: 1px solid #e3d9c6; background: var(--paper); border-radius: 999px; padding: 4px 10px;
   font-size: 12px; font-weight: 800; letter-spacing: 0; text-transform: none; color: var(--ink);

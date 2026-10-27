@@ -5,10 +5,11 @@ PWA de estudo para a entrevista e o teste teórico de piloto da TAP: 316 cartõe
 ## Como se usa
 
 ```
-Toque no ecrã / Arrastar ↑ ─► resposta + as tuas notas + Claude + adiar
-   └─ 3 botões no fundo (obrigatório para passar ao próximo cartão):
-        🟢 Fácil  ·  🟡 Tive de pensar  ·  🔴 Não sabia   (teclado: 1 · 2 · 3)
-        └─► grava a avaliação e passa ao próximo; 🔴 volta daqui a ~5 cartões
+3 botões no próprio cartão (obrigatório para passar ao próximo):
+   🟢 Fácil  ·  🟡 Tive de pensar  ·  🔴 Não sabia   (teclado: 1 · 2 · 3)
+   └─► grava a avaliação e passa ao próximo; 🔴 volta daqui a ~5 cartões
+Toque no cartão / Arrastar ↑ ─► resposta + as tuas notas + Claude + adiar
+   └─ os mesmos 3 botões estão no fundo da resposta
 Arrastar ← / →  ────────► próximo (só depois de avaliar) / anterior
    ├─ ⏱ 10 min / 1 h / 1 dia / 7 dias ─► o cartão volta depois desse tempo
    └─ ✓ Já sei ────────────────────────► não volta a aparecer

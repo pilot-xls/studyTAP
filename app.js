@@ -164,6 +164,9 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
         <div><small>Visto</small><span>${data.seen[c.id] || 0}×${lvl(c) ? ' ' + RATE[lvl(c)].icon : ''}</span></div>
       </div>
       <div class="q">${esc(c.q)}</div>
+      <div class="card-rate" role="group" aria-label="Como correu este cartão?">
+        ${['f', 'p', 'n'].map(r => `<button class="r-${r}${lvl(c) === r ? ' sel' : ''}" data-rate="${r}"><span>${RATE[r].icon}</span>${RATE[r].label}</button>`).join('')}
+      </div>
       <div class="foot">${note}<span class="up-hint">↑ resposta</span></div>`;
   }
 
@@ -290,7 +293,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     if (e.target.matches('input, textarea, select')) return;
     const open = $('#sheet').classList.contains('open') || $('#library').classList.contains('open') || $('#panel').classList.contains('open');
     if (e.key === 'Escape') { closeSheet(); closePanel(); closeLib(); }
-    else if ('123'.includes(e.key) && e.key.length === 1 && $('#sheet').classList.contains('open')) rateCard({ 1: 'f', 2: 'p', 3: 'n' }[e.key]); // teclado: 1 fácil · 2 pensei · 3 não sabia
+    else if ('123'.includes(e.key) && e.key.length === 1 && !$('#library').classList.contains('open') && !$('#panel').classList.contains('open')) rateCard({ 1: 'f', 2: 'p', 3: 'n' }[e.key]); // teclado: 1 fácil · 2 pensei · 3 não sabia
     else if (open) return;
     else if (e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); next(); }
     else if (e.key === 'ArrowLeft') prev();
@@ -366,6 +369,13 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     setTimeout(() => { moving = false; next(); }, 250);
   }
   $('#rate').querySelectorAll('button').forEach(b => b.addEventListener('click', () => rateCard(b.dataset.rate)));
+  // os mesmos 3 botões, diretamente no cartão (não é preciso abrir a resposta)
+  $('#deck').addEventListener('click', e => {
+    const b = e.target.closest('.card-rate [data-rate]'); if (!b) return;
+    const card = b.closest('.card');
+    if (card.classList.contains('ghost') || card.classList.contains('out-next') || card.classList.contains('out-prev')) return;
+    rateCard(b.dataset.rate);
+  });
 
   sheet.querySelectorAll('[data-snooze]').forEach(b => b.addEventListener('click', () => {
     const c = deck[idx]; if (!c) return;
