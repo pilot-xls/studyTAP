@@ -399,3 +399,23 @@ textarea:focus, input:focus, select:focus { outline: 2px solid var(--amber); bor
 }
 @media (min-width: 700px) {
 }
+
+/* Imagens nas notas */
+.imgs { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin-top: 8px; }
+.imgs:empty { display: none; }
+.imgs figure { position: relative; margin: 0; }
+.nimg { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; border: 1px solid #e3d9c6; background: var(--paper-2); }
+.nimg.broken { min-height: 96px; font-size: 11px; color: var(--ink-soft); }
+.del-img {
+  position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border: 0; border-radius: 50%;
+  background: rgba(14, 26, 51, .78); color: #fff; font-size: 13px; line-height: 1; cursor: pointer;
+}
+.add-img {
+  display: inline-block; margin-top: 8px; padding: 9px 12px; border-radius: 12px; border: 1px dashed #c9bb9f;
+  font-weight: 800; font-size: 14px; color: var(--ink); background: transparent; cursor: pointer;
+}
+.lightbox {
+  position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center;
+  background: rgba(5, 10, 25, .92); padding: 12px;
+}
+.lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; }

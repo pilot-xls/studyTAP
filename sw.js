@@ -1,5 +1,5 @@
 /* Service worker: funciona offline. Muda a VERSION sempre que atualizares a app. */
-const VERSION = 'tapcards-v10';
+const VERSION = 'tapcards-v11';
 const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'music.js', 'cards.md', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
@@ -20,6 +20,6 @@ self.addEventListener('fetch', e => {
     return;
   }
   e.respondWith(caches.match(e.request, { ignoreSearch: true }).then(r => r || fetch(e.request).then(res => {
-    const cp = res.clone(); caches.open(VERSION).then(c => c.put(e.request, cp)); return res;
+    if (res.ok) { const cp = res.clone(); caches.open(VERSION).then(c => c.put(e.request, cp)); } return res; // não guarda erros (ex.: imagem ainda não publicada)
   })));
 });

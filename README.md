@@ -27,6 +27,20 @@ Arrastar ← / →  ────────► próximo (só depois de avaliar)
 
 Em ☰ ▸ **Estudo** podes escolher «Só difíceis» (🔴 + 🟡) para estudar apenas o que te custa. A lista de cartões também filtra por avaliação. As avaliações ficam no telemóvel (entram na cópia de segurança: Exportar / Importar).
 
+### Imagens nas notas
+
+```
+Cartão ─► toca/↑ para abrir a resposta ─► As minhas notas ─► 📷 Adicionar imagem (galeria ou câmara)
+   │      (ou ☰ ▸ 🗂 Ver e editar ▸ cartão ▸ 📷 Adicionar imagem)
+   ▼
+app reduz a foto (≤1400 px, JPEG) ─► grava img/<id>-<código>.jpg no repositório (precisa do token) ─► aparece nas notas
+Toca na miniatura = ver grande · ✕ = remover das notas
+```
+
+- As imagens ficam na pasta `img/` do repositório (**público = visíveis a todos**) e os caminhos entram no `notes.json` (☰ ▸ Sincronizar notas).
+- Remover tira a imagem das notas, mas o ficheiro continua em `img/` no GitHub (apaga à mão se quiseres).
+- A imagem aparece 1-2 min depois de enviada (tempo do GitHub Pages); nesta sessão aparece logo. Offline só vês as que já abriste uma vez.
+
 O avião no topo mostra quantas perguntas **diferentes** já viste de todos os cartões (ex.: `120/316`), desde sempre — não só hoje nem só neste voo. Em ☰ vês o mesmo número, a percentagem e as passagens no total.
 
 ## Publicar no GitHub Pages

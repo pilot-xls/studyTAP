@@ -33,7 +33,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     const seg = location.pathname.split('/').filter(Boolean)[0];
     return `${h[1]}/${seg && !seg.includes('.') ? seg : h[1] + '.github.io'}`;
   }
-  const data = Object.assign({ notes: {}, snooze: {}, seen: {}, rate: {}, pending: [], notesDirty: false, day: '', today: 0, streak: 0, total: 0 }, store.load());
+  const data = Object.assign({ notes: {}, imgs: {}, snooze: {}, seen: {}, rate: {}, pending: [], notesDirty: false, day: '', today: 0, streak: 0, total: 0 }, store.load());
   // definições novas ganham valor por omissão mesmo em dados antigos
   const S = data.settings = Object.assign({ mode: 'all', themes: null, prio: 'all', study: 'all', vol: .45, music: false, apiKey: '', model: 'claude-sonnet-5-5',
     ghToken: '', ghRepo: detectRepo(), ghBranch: 'main' }, data.settings);
@@ -155,7 +155,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
   const pad3 = n => String(n).padStart(3, '0');
 
   function cardHTML(c, n, total) {
-    const note = data.notes[c.id] ? '<span class="tag-note">✎ nota</span>' : `<div class="barcode"></div>`;
+    const note = (data.notes[c.id] || (data.imgs[c.id] || []).length) ? `<span class="tag-note">✎ nota${(data.imgs[c.id] || []).length ? ' · 🖼' : ''}</span>` : `<div class="barcode"></div>`;
     return `
       <div class="stub"><span>Cartão de embarque</span><b>${pad3(n)}/${pad3(total)}</b></div>
       <div class="meta">
@@ -312,6 +312,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
       .concat(c.flags.map(f => `<span class="flag ${esc(f)}">${esc(f)}</span>`)).join('');
     $('#notes').value = data.notes[c.id] || '';
     $('#noteSaved').textContent = '';
+    renderImgs('#sheetImgs', c.id);
     $('#rate').querySelectorAll('button').forEach(b => b.classList.toggle('sel', b.dataset.rate === lvl(c)));
     renderChat();
     refreshClaudeUI();
@@ -655,7 +656,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     const f = e.target.files[0]; if (!f) return;
     try {
       const j = JSON.parse(await f.text()); const r = j.raw || j;
-      Object.assign(data.notes, r.notes || {}); Object.assign(data.snooze, r.snooze || {}); Object.assign(data.rate, r.rate || {});
+      Object.assign(data.notes, r.notes || {}); Object.assign(data.snooze, r.snooze || {}); Object.assign(data.rate, r.rate || {}); Object.assign(data.imgs, r.imgs || {});
       markNotes(); toast('Notas importadas ✓'); openPanel();
     } catch { toast('Ficheiro inválido'); }
   });
@@ -693,21 +694,93 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
   }
   // Sincroniza as notas com notes.json (junta; em conflito, a versão deste telemóvel ganha)
   async function syncNotes() {
-    let remote = {}, sha;
+    let remote = {}, remoteImgs = {}, sha;
     try {
       const f = await ghFile('notes.json'); sha = f.sha;
-      try { remote = JSON.parse(f.text).notes || {}; } catch { throw new Error('notes.json inválido no GitHub'); }
+      try { const j = JSON.parse(f.text); remote = j.notes || {}; remoteImgs = j.imgs || {}; } catch { throw new Error('notes.json inválido no GitHub'); }
     } catch (e) { if (e.status !== 404) throw e; }
     const merged = Object.assign({}, remote, data.notes);
-    const same = JSON.stringify(Object.entries(merged).sort()) === JSON.stringify(Object.entries(remote).sort());
-    data.notes = merged; persist();
+    const mergedImgs = Object.assign({}, remoteImgs, data.imgs);
+    const norm = o => JSON.stringify(Object.entries(o).sort());
+    const same = norm(merged) === norm(remote) && norm(mergedImgs) === norm(remoteImgs);
+    data.notes = merged; data.imgs = mergedImgs; persist();
     if (same && sha) { data.notesDirty = false; persist(); return Object.keys(merged).length; }
-    const body = { message: 'Sincronizar notas', content: b64enc(JSON.stringify({ atualizado: new Date().toISOString(), notes: merged }, null, 2)), branch: S.ghBranch };
+    const body = { message: 'Sincronizar notas', content: b64enc(JSON.stringify({ atualizado: new Date().toISOString(), notes: merged, imgs: mergedImgs }, null, 2)), branch: S.ghBranch };
     if (sha) body.sha = sha;
     await gh('', { method: 'PUT', body: JSON.stringify(body) }, 'notes.json');
     data.notesDirty = false; persist();
     return Object.keys(merged).length;
   }
+  // ---------- Imagens nas notas: ficheiro em img/ no GitHub, caminhos em data.imgs (e em notes.json) ----------
+  const blobs = {}; // caminho -> blob URL: aparece logo, antes de o GitHub Pages publicar a imagem
+  const imgSrc = p => blobs[p] || p;
+  const imgCardId = sel => (sel === '#sheetImgs' ? (deck[idx] || {}).id : editId);
+  function renderImgs(sel, id) {
+    const box = $(sel); if (!box) return;
+    box.innerHTML = (data.imgs[id] || []).map((p, i) =>
+      `<figure><img class="nimg" src="${esc(imgSrc(p))}" data-p="${esc(p)}" alt="Imagem ${i + 1}" loading="lazy"><button type="button" class="del-img" data-del="${i}" aria-label="Remover imagem">✕</button></figure>`).join('');
+  }
+  function loadImg(file) {
+    return new Promise((ok, no) => {
+      const u = URL.createObjectURL(file), im = new Image();
+      im.onload = () => { URL.revokeObjectURL(u); ok(im); };
+      im.onerror = () => { URL.revokeObjectURL(u); no(new Error('Formato de imagem não suportado')); };
+      im.src = u;
+    });
+  }
+  // reduz para ≤1400 px e JPEG 80% (fica na ordem dos 150-300 KB)
+  async function shrink(file) {
+    const im = await loadImg(file);
+    const k = Math.min(1, 1400 / Math.max(im.naturalWidth, im.naturalHeight));
+    const cv = document.createElement('canvas');
+    cv.width = Math.max(1, Math.round(im.naturalWidth * k)); cv.height = Math.max(1, Math.round(im.naturalHeight * k));
+    const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height); ctx.drawImage(im, 0, 0, cv.width, cv.height);
+    return new Promise((ok, no) => cv.toBlob(b => (b ? ok(b) : no(new Error('Não consegui processar a imagem'))), 'image/jpeg', .8));
+  }
+  const blobB64 = b => new Promise((ok, no) => {
+    const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = () => no(new Error('Falhou a ler a imagem')); r.readAsDataURL(b);
+  });
+  async function addImage(file, id, sel) {
+    if (!S.ghToken) { toast('Mete o token do GitHub (☰ ▸ GitHub) para guardar imagens'); return; }
+    if (!navigator.onLine) { toast('Sem internet'); return; }
+    toast('A enviar imagem…');
+    try {
+      const b = await shrink(file);
+      const path = `img/${id}-${Date.now().toString(36)}.jpg`;
+      await gh('', { method: 'PUT', body: JSON.stringify({ message: 'Adicionar imagem', content: await blobB64(b), branch: S.ghBranch }) }, path);
+      blobs[path] = URL.createObjectURL(b);
+      (data.imgs[id] = data.imgs[id] || []).push(path);
+      markNotes();
+      if (imgCardId(sel) === id) renderImgs(sel, id);
+      toast('Imagem guardada ✓');
+    } catch (e) { toast('Imagem não guardada: ' + e.message); }
+  }
+  document.addEventListener('change', e => {
+    const t = e.target;
+    if (!t.matches || !t.matches('input[data-addimg]')) return;
+    const sel = t.dataset.addimg === 'sheet' ? '#sheetImgs' : '#editImgs', id = imgCardId(sel), f = t.files[0];
+    t.value = '';
+    if (f && id) addImage(f, id, sel);
+  });
+  document.addEventListener('click', e => {
+    const t = e.target;
+    if (t.classList && t.classList.contains('nimg')) { $('#lightbox img').src = t.currentSrc || t.src; $('#lightbox').hidden = false; return; }
+    if (t.classList && t.classList.contains('del-img')) {
+      const sel = t.closest('#sheetImgs') ? '#sheetImgs' : '#editImgs', id = imgCardId(sel), i = +t.dataset.del;
+      if (!id || !confirm('Remover esta imagem das notas?')) return;
+      data.imgs[id] = (data.imgs[id] || []).filter((_, j) => j !== i); // fica [] para o apagar também se sincronizar
+      markNotes(); renderImgs(sel, id);
+    }
+  });
+  $('#lightbox').addEventListener('click', () => { $('#lightbox').hidden = true; });
+  // se o GitHub Pages ainda não publicou a imagem, usa a cópia local desta sessão
+  document.addEventListener('error', e => {
+    const t = e.target;
+    if (!t.classList || !t.classList.contains('nimg')) return;
+    const b = blobs[t.dataset.p];
+    if (b && t.src !== b) t.src = b; else t.classList.add('broken');
+  }, true);
+
   // Troca a linha do cartão no cards.md do GitHub; devolve a linha antiga
   async function commitLine(oldId, newLine, msg, tries = 2) {
     const f = await ghFile();
@@ -804,6 +877,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     $('#editA').value = c.a;
     $('#editNotes').value = data.notes[c.id] || '';
     $('#editNoteSaved').textContent = '';
+    renderImgs('#editImgs', c.id);
     $('#editHint').textContent = S.ghToken ? '' : 'Para gravar pergunta e resposta no GitHub, mete o token em ☰ ▸ GitHub. As notas guardam-se sempre aqui.';
     refreshSave();
     $('#libIn').scrollTop = 0;
@@ -847,7 +921,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
       const oldLine = await commitLine(c.id, line, `Editar cartão: ${q.length > 60 ? q.slice(0, 57) + '…' : q}`);
       const oldId = c.id;
       if (p.id !== oldId) { // notas, vistos e adiados seguem a pergunta nova
-        for (const k of ['notes', 'seen', 'snooze', 'rate']) if (data[k][oldId] !== undefined) { data[k][p.id] = data[k][oldId]; delete data[k][oldId]; }
+        for (const k of ['notes', 'imgs', 'seen', 'snooze', 'rate']) if (data[k][oldId] !== undefined) { data[k][p.id] = data[k][oldId]; delete data[k][oldId]; }
         if (chats[oldId]) { chats[p.id] = chats[oldId]; delete chats[oldId]; }
       }
       Object.assign(c, { id: p.id, q: p.q, a: p.a, line });
