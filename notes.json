@@ -1,5 +1,5 @@
 {
-  "atualizado": "2026-10-27T21:02:13.810Z",
+  "atualizado": "2026-10-27T21:42:41.508Z",
   "notes": {
     "kjiplw": "Gradiente mínimo: 2,5% (PANS-OPS), salvo se a carta publicar outro valor.\n",
     "mh0jso": "X2 -8% =1,84 km/h",
@@ -28,7 +28,8 @@
     "1ixjt0a": "\n| Código (RwyCC) | Categoria                      | Coeficiente (Mu)  | Impacto na Aeronave                                                 |\n| -------------- | ------------------------------ | ----------------- | ------------------------------------------------------------------- |\n| **6**          | Good (Bom)                     | > 0.40            | Desaceleração normal e sem desvios na trajetória.                    |\n| **5**          | Good to Medium (Bom a Médio)   | 0.36 a 0.39       | Travagem ligeiramente reduzida; controlo direcional total.          |\n| **4**          | Medium (Médio)                 | 0.30 a 0.35       | Redução percetível na capacidade de paragem.                        |\n| **3**          | Medium to Poor (Médio a Ruim)  | 0.26 a 0.29       | Distância de paragem visivelmente aumentada.                        |\n| **2**          | **Poor (Ruim)**                | **0.21 a 0.25**   | **Força de travagem muito baixa; elevado risco de derrapagem.**     |\n| **1**          | Very Poor (Muito Ruim)         | <= 0.20           | Controlo direcional instável; desempenho marginal.                  |\n| **0**          | Nil (Nulo)                     | Unreliable        | Incapacidade de parar ou controlar; pista encerrada.                |\n",
     "1bcvv3": "• Raiz da asa: Possui um ângulo maior, fazendo com que atinja o ângulo crítico de estancamento (stall) primeiro quando a aeronave voa com um ângulo de ataque elevado.\n• Ponta da asa: Possui um ângulo menor, mantendo o fluxo de ar limpo e sustentação por mais tempo, mesmo quando a raiz já começou a estagnar.\n\nwashout garante que a raiz da asa atinja o stall (estancamento) antes da ponta.",
     "r3jde1": "IFR Radio Failure — Sequência\nFalha COM → tentativas de restabelecimento\nSQUAWK 7600\nÚltima autorização / SID-STAR publicada\n20 minutos — nível e velocidade\nFix de destino → EAT/ETA → aproximação\nAterragem, se possível, dentro da janela de 30 minutos",
-    "yjxduh": "MGA = obstáculo mais alto da quadrícula, arredondado aos 100 ft seguintes, + 1 000 ft (até 6 000 ft) ou + 2 000 ft (acima de 6 000 ft).\nMin Grid altitude "
+    "yjxduh": "MGA = obstáculo mais alto da quadrícula, arredondado aos 100 ft seguintes, + 1 000 ft (até 6 000 ft) ou + 2 000 ft (acima de 6 000 ft).\nMin Grid altitude ",
+    "2bjlsd": "https://www.boldmethod.com/blog/lists/2025/05/three-types-of-aircraft-hydroplaning/\n\n"
   },
   "imgs": {}
 }
