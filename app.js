@@ -131,7 +131,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
       if (until > 0 && until <= now) {
         delete data.snooze[id]; changed = true;
         const c = cards.find(x => x.id === id);
-        if (c && th.has(c.theme) && (S.prio === 'all' || c.prio === S.prio) && !inDeck.has(id)) {
+        if (c && th.has(c.theme) && (S.prio === 'all' || c.prio === S.prio) && (S.study !== 'hard' || lvl(c) === 'n' || lvl(c) === 'p') && !inDeck.has(id)) {
           deck.splice(Math.min(idx + 2, deck.length), 0, Object.create(c)); n++;
         }
       }
@@ -372,6 +372,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     rated.add(c); // adiar / «já sei» também deixam passar
     const ms = +b.dataset.snooze;
     data.snooze[c.id] = ms === -1 ? -1 : Date.now() + ms;
+    deck = deck.filter((x, i) => i <= idx || x.id !== c.id); // tira as cópias «Não sabia» que ainda vinham a caminho
     persist();
     closeSheet();
     toast(ms === -1 ? '✓ Dominado — não volta a aparecer' : `⏱ Volta daqui a ${b.textContent.trim().replace('1 hora','1 h')}`);
