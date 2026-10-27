@@ -54,7 +54,9 @@
 
     <div class="block">
       <h3>As minhas notas <small id="noteSaved"></small></h3>
+      <div class="imgs" id="sheetImgs"></div>
       <textarea id="notes" rows="12" wrap="off" placeholder="Escreve aqui a tua resposta, truques e dúvidas… (guardado no telemóvel)"></textarea>
+      <label class="add-img">📷 Adicionar imagem<input type="file" accept="image/*" hidden data-addimg="sheet"></label>
     </div>
 
     <div class="block claude">
@@ -206,10 +208,14 @@
       <p class="note" id="editHint"></p>
       <button class="primary" id="editSave">Guardar no GitHub</button>
       <h3>As minhas notas <small id="editNoteSaved"></small></h3>
+      <div class="imgs" id="editImgs"></div>
       <textarea id="editNotes" rows="8" wrap="off" placeholder="Truques e dúvidas… (guardado no telemóvel)"></textarea>
+      <label class="add-img">📷 Adicionar imagem<input type="file" accept="image/*" hidden data-addimg="edit"></label>
     </div>
   </div>
 </section>
+
+<div class="lightbox" id="lightbox" hidden><img alt=""></div>
 
 <div class="toast" id="toast"></div>
 <canvas id="confetti" aria-hidden="true"></canvas>
