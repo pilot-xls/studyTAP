@@ -1,5 +1,5 @@
 {
-  "atualizado": "2026-10-27T21:44:24.226Z",
+  "atualizado": "2026-10-29T12:19:52.459Z",
   "notes": {
     "kjiplw": "Gradiente mínimo: 2,5% (PANS-OPS), salvo se a carta publicar outro valor.\n",
     "mh0jso": "X2 -8% =1,84 km/h",
@@ -29,7 +29,7 @@
     "1bcvv3": "• Raiz da asa: Possui um ângulo maior, fazendo com que atinja o ângulo crítico de estancamento (stall) primeiro quando a aeronave voa com um ângulo de ataque elevado.\n• Ponta da asa: Possui um ângulo menor, mantendo o fluxo de ar limpo e sustentação por mais tempo, mesmo quando a raiz já começou a estagnar.\n\nwashout garante que a raiz da asa atinja o stall (estancamento) antes da ponta.",
     "r3jde1": "IFR Radio Failure — Sequência\nFalha COM → tentativas de restabelecimento\nSQUAWK 7600\nÚltima autorização / SID-STAR publicada\n20 minutos — nível e velocidade\nFix de destino → EAT/ETA → aproximação\nAterragem, se possível, dentro da janela de 30 minutos",
     "yjxduh": "MGA = obstáculo mais alto da quadrícula, arredondado aos 100 ft seguintes, + 1 000 ft (até 6 000 ft) ou + 2 000 ft (acima de 6 000 ft).\nMin Grid altitude ",
-    "2bjlsd": "https://www.boldmethod.com/blog/lists/2025/05/three-types-of-aircraft-hydroplaning/\n\nDynamic, Reverted, Viscous"
+    "2bjlsd": "https://www.boldmethod.com/blog/lists/2025/05/three-types-of-aircraft-hydroplaning/\n\nDynamic, Reverted, Viscous\n\nExemplos práticos:\n\n\t•\tDinâmico: aterragem a alta velocidade em pista com 5+ mm de água após chuva forte → pneus \"flutuam\" sobre a água.\n\t•\tViscoso: pista molhada com fina película, zona de toque cheia de borracha → travagem fraca mesmo a baixa velocidade (~30-50 kt).\n\t•\tReverted: aterragem com travões bloqueados (anti-skid inop.) em pista molhada → pneu patina, aquece, vapor sela a zona de contacto."
   },
   "imgs": {}
 }
