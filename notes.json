@@ -1,5 +1,5 @@
 {
-  "atualizado": "2026-11-02T18:21:32.318Z",
+  "atualizado": "2026-11-02T18:30:25.475Z",
   "notes": {
     "kjiplw": "Gradiente mínimo: 2,5% (PANS-OPS), salvo se a carta publicar outro valor.\n",
     "mh0jso": "X2 -8% =1,84 km/h",
@@ -33,5 +33,9 @@
     "1xrqr44": "1. O que é um alternante em rota (ERA)?\nÉ um aeródromo onde o avião pode aterrar caso seja necessário desviar durante o voo.\n\n2. Quando é necessário?\nContingency fuel de 5%: não exige, por si só, um Fuel ERA.\nContingency fuel de 3%: exige um Fuel ERA disponível e que cumpra critérios específicos de localização e planeamento.\n\n3. Para memorizar\nFuel de contingência de 3% → Fuel ERA adequado → redução da reserva de contingência.",
     "rwhr2b": "Truque de memorização: a história de um voo\nDivide os anexos em quatro grupos:\n\n1–5 Antes do voo\nO piloto tem licença (1), \nconhece as regras (2), \nverifica a meteorologia (3), \nconsulta as cartas (4) \ne confirma as unidades de medida (5).\n\n6–10 O avião e a operação\nOpera o avião (6), \nque tem matrícula (7), \nestá apto a voar (8),\n transporta passageiros (9) \ne comunica por rádio (10).\n\n11–15 Controlo e emergências\nO ATC controla (11), \no resgate procura (12), \nos acidentes são investigados (13), \nnos aeroportos (14) \nexiste informação aeronáutica (15).\n\n16–19 Proteção e segurança\nProtege-se o ambiente (16), \nprevinem-se atos ilícitos (17), \ncontrolam-se mercadorias perigosas (18) \ne gere-se a segurança operacional (19)."
   },
-  "imgs": {}
+  "imgs": {
+    "rwhr2b": [
+      "img/rwhr2b-mvzlfijy.jpg"
+    ]
+  }
 }
