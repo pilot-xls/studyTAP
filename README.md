@@ -4,6 +4,33 @@ PWA de estudo para a entrevista e o teste teórico de piloto da TAP: 316 cartõe
 
 ## Como se usa
 
+### Painel inicial
+
+A app abre num painel com o teu progresso e um botão para cada tipo de voo:
+
+```
+Abrir app ─► 🏠 Painel
+   ├─ Tudo / Teste teórico / Entrevista ─► muda o modo (as contas do painel acompanham)
+   ├─ Progresso: vistas · 🔴 🟡 🟢 · por ver · hoje · dias seguidos · dominados · adiados
+   ├─ ⏯ Continuar voo ─────────► volta ao cartão onde estavas (só se tiveres um voo a meio)
+   ├─ ▶ Estudar ───────────────► ordem de estudo: 🔴 → 🟡 → nunca vistas → 🟢 (o que fazia antes ao abrir)
+   ├─ 🆕 Nunca vistas ─────────► só perguntas que ainda não viste
+   ├─ 🔥 Difíceis ─────────────► só 🔴 + 🟡
+   ├─ 🔴 Não sabia ────────────► só 🔴
+   ├─ 🔁 Para rever ───────────► avaliadas há algum tempo: 🔴 há >1 dia · 🟡 há >3 dias · 🟢 há >7 dias
+   ├─ ⚡ Voo rápido ───────────► 20 cartões, na ordem de estudo
+   ├─ ✎ Com notas ─────────────► só cartões com as tuas notas/imagens
+   ├─ Por tema ────────────────► progresso de cada tema; toca para estudar só esse tema
+   └─ 🗂 Ver e editar todos os cartões
+
+Voo ─► ‹ Painel (topo) · Esc · botão Voltar do Android ─► Painel
+Fim do voo ─► resumo 🟢 / 🟡 / 🔴 (1.ª avaliação de cada pergunta) ─► Novo voo · ‹ Painel
+```
+
+Os botões com 0 cartões ficam desligados. Dominados e adiados não entram em nenhum voo. Os filtros de ☰ (temas e prioridade P1/P2) valem para todos os botões.
+
+### No cartão
+
 ```
 3 botões no próprio cartão (obrigatório para passar ao próximo):
    🟢 Fácil  ·  🟡 Tive de pensar  ·  🔴 Não sabia   (teclado: 1 · 2 · 3)
@@ -15,6 +42,8 @@ Arrastar ← / →  ────────► próximo (só depois de avaliar)
    └─ ✓ Já sei ────────────────────────► não volta a aparecer
 ♪ (topo) ───────────────► música de estudo calma (gerada na app, funciona offline)
 ☰ (topo) ───────────────► modo (Tudo / Teste teórico / Entrevista), temas, P1/P2, chave API, exportar notas
+   ├─ Aplicar no painel ─► atualiza as contas (um voo em pausa é descartado)
+   ├─ Aplicar num voo ───► rebaralha o mesmo tipo de voo com os filtros novos
    └─ 🗂 Ver e editar todos os cartões ─► lista com pesquisa ─► editar pergunta, resposta e notas
 ```
 
@@ -22,10 +51,10 @@ Arrastar ← / →  ────────► próximo (só depois de avaliar)
 
 ```
 🔴 Não sabia ─► 🟡 Tive de pensar ─► nunca vistos ─► vistos sem avaliação ─► 🟢 Fácil (revisão no fim)
-   (dentro de cada grupo: P1 antes de P2, baralhados)
+   (dentro de cada grupo: P1 antes de P2, baralhados — vale para todos os botões do painel)
 ```
 
-Em ☰ ▸ **Estudo** podes escolher «Só difíceis» (🔴 + 🟡) para estudar apenas o que te custa. A lista de cartões também filtra por avaliação. As avaliações ficam no telemóvel (entram na cópia de segurança: Exportar / Importar).
+Para estudar só o que te custa usa 🔥 **Difíceis** (🔴 + 🟡) ou 🔴 **Não sabia** no painel. A lista de cartões também filtra por avaliação. As avaliações ficam no telemóvel (entram na cópia de segurança: Exportar / Importar).
 
 ### Imagens nas notas
 

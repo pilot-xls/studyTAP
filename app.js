@@ -35,8 +35,9 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
   }
   const data = Object.assign({ notes: {}, imgs: {}, snooze: {}, seen: {}, rate: {}, pending: [], notesDirty: false, day: '', today: 0, streak: 0, total: 0 }, store.load());
   // definições novas ganham valor por omissão mesmo em dados antigos
-  const S = data.settings = Object.assign({ mode: 'all', themes: null, prio: 'all', study: 'all', vol: .45, music: false, apiKey: '', model: 'claude-sonnet-5-5',
+  const S = data.settings = Object.assign({ mode: 'all', themes: null, prio: 'all', vol: .45, music: false, apiKey: '', model: 'claude-sonnet-5-5',
     ghToken: '', ghRepo: detectRepo(), ghBranch: 'main' }, data.settings);
+  delete S.study; // antigo «Só difíceis» do menu: agora é o botão 🔥 Difíceis do painel
 
   // Avaliação de cada cartão: f = fácil, p = tive de pensar, n = não sabia
   const RATE = { f: { icon: '🟢', label: 'Fácil' }, p: { icon: '🟡', label: 'Tive de pensar' }, n: { icon: '🔴', label: 'Não sabia' } };
@@ -99,21 +100,45 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
   const activeThemes = () => S.themes || MODES[S.mode] || Object.keys(THEMES);
   const hidden = c => { const s = data.snooze[c.id]; return s === -1 || (s && s > Date.now()); };
 
+  // ---------- Tipos de voo (botões do painel inicial) ----------
+  // «Para rever»: avaliados há algum tempo — 🔴 há mais de 1 dia, 🟡 há mais de 3, 🟢 há mais de 7
+  const DUE = { n: 864e5, p: 3 * 864e5, f: 7 * 864e5 };
+  const isDue = c => { const r = data.rate[c.id]; return !!(r && DUE[r.l]) && Date.now() - (r.at || 0) >= DUE[r.l]; };
+  const KINDS = {
+    study:  { icon: '▶', label: 'Estudar', test: () => true },
+    unseen: { icon: '🆕', label: 'Nunca vistas', sub: 'perguntas novas', acc: '#8fb3ff', test: c => !data.seen[c.id] },
+    hard:   { icon: '🔥', label: 'Difíceis', sub: '🔴 + 🟡', acc: '#ff9b5e', test: c => lvl(c) === 'n' || lvl(c) === 'p' },
+    n:      { icon: '🔴', label: 'Não sabia', sub: 'só as 🔴', acc: '#ff7a85', test: c => lvl(c) === 'n' },
+    review: { icon: '🔁', label: 'Para rever', sub: '🔴 1 d · 🟡 3 d · 🟢 7 d', acc: '#5ee0b5', test: isDue },
+    quick:  { icon: '⚡', label: 'Voo rápido', sub: '20 cartões', acc: '#ffb547', test: () => true, limit: 20 },
+    notes:  { icon: '✎', label: 'Com notas', sub: 'as tuas notas', acc: '#e0b3ff', test: c => hasNote(c.id) },
+    theme:  { icon: '◆', label: 'Tema', test: () => true },
+  };
+  // voo atual: tipo, tema (só no estudo por tema) e 1.ª avaliação de cada pergunta neste voo
+  let session = null;
+  // âmbito: temas/modo e prioridade escolhidos (☰ ou painel); um único tema no estudo por tema
+  const inScope = (c, theme) => (theme ? c.theme === theme : activeThemes().includes(c.theme)) && (S.prio === 'all' || c.prio === S.prio);
+  const sessMatch = c => !!session && inScope(c, session.theme) && KINDS[session.kind].test(c);
+  const sessLabel = () => !session ? '' : session.kind === 'theme'
+    ? `◆ ${LABEL[session.theme] || session.theme}` : `${KINDS[session.kind].icon} ${KINDS[session.kind].label}`;
+  const tally = () => { const t = { f: 0, p: 0, n: 0 }; Object.values(session ? session.first : {}).forEach(l => t[l]++); return t; };
+
+  // dentro de cada grupo: P1 antes de P2, baralhados
+  const byPrio = a => [...shuffle(a.filter(c => c.prio === 'P1')), ...shuffle(a.filter(c => c.prio !== 'P1'))];
+  // Ordem: não sabia -> tive de pensar -> nunca vistos -> vistos sem avaliação -> fáceis (revisão no fim)
+  const studyOrder = pool => [
+    ...byPrio(pool.filter(c => lvl(c) === 'n')),
+    ...byPrio(pool.filter(c => lvl(c) === 'p')),
+    ...byPrio(pool.filter(c => !lvl(c) && !data.seen[c.id])),
+    ...byPrio(pool.filter(c => !lvl(c) && data.seen[c.id])),
+    ...shuffle(pool.filter(c => lvl(c) === 'f')),
+  ];
+
   function buildDeck() {
-    const th = new Set(activeThemes());
-    let pool = cards.filter(c => th.has(c.theme) && !hidden(c));
-    if (S.prio !== 'all') pool = pool.filter(c => c.prio === S.prio);
-    if (S.study === 'hard') pool = pool.filter(c => lvl(c) === 'n' || lvl(c) === 'p');
-    // dentro de cada grupo: P1 antes de P2, baralhados
-    const byPrio = a => [...shuffle(a.filter(c => c.prio === 'P1')), ...shuffle(a.filter(c => c.prio !== 'P1'))];
-    // Ordem: não sabia -> tive de pensar -> nunca vistos -> vistos sem avaliação -> fáceis (revisão no fim)
-    deck = [
-      ...byPrio(pool.filter(c => lvl(c) === 'n')),
-      ...byPrio(pool.filter(c => lvl(c) === 'p')),
-      ...byPrio(pool.filter(c => !lvl(c) && !data.seen[c.id])),
-      ...byPrio(pool.filter(c => !lvl(c) && data.seen[c.id])),
-      ...shuffle(pool.filter(c => lvl(c) === 'f')),
-    ];
+    deck = studyOrder(cards.filter(c => !hidden(c) && sessMatch(c)));
+    const lim = KINDS[session.kind].limit;
+    if (lim) deck = deck.slice(0, lim);
+    session.first = {};
     rated = new WeakSet();
     idx = 0;
   }
@@ -127,25 +152,26 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
   // Cartões adiados cujo tempo já passou voltam a entrar no baralho (respeitando tema e prioridade)
   function requeueExpired() {
     const now = Date.now(), inDeck = new Set(deck.slice(idx).map(c => c.id));
-    const th = new Set(activeThemes());
     let n = 0, changed = false;
     for (const [id, until] of Object.entries(data.snooze)) {
       if (until > 0 && until <= now) {
         delete data.snooze[id]; changed = true;
         const c = cards.find(x => x.id === id);
-        if (c && th.has(c.theme) && (S.prio === 'all' || c.prio === S.prio) && (S.study !== 'hard' || lvl(c) === 'n' || lvl(c) === 'p') && !inDeck.has(id)) {
+        // só volta ao voo se pertencer a este tipo de voo (tema, prioridade, difíceis, etc.)
+        if (c && sessMatch(c) && !inDeck.has(id)) {
           deck.splice(Math.min(idx + 2, deck.length), 0, Object.create(c)); n++;
         }
       }
     }
     if (changed) persist();
-    return n;
+    return changed ? Math.max(n, 0) : -1; // -1: nada expirou
   }
   // Sem depender de deslizar: verifica de 30 em 30 s e ao voltar à app
   function checkSnoozed() {
     const wasEnd = idx >= deck.length;
     const n = requeueExpired();
-    if (!n) return;
+    if (isHome()) { if (n >= 0) renderHome(); return; } // no painel só atualiza as contas
+    if (n <= 0) return;
     if (wasEnd) { render(1); toast('⏱ Voltou um cartão adiado'); }
     else { updateProgress(); toast('⏱ Voltou um cartão adiado'); }
   }
@@ -204,21 +230,42 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     updateProgress();
   }
 
+  const EMPTY = {
+    unseen: 'Já viste todas as perguntas deste filtro. 🎉',
+    hard: 'Não tens cartões difíceis (🔴 / 🟡) neste filtro.',
+    n: 'Não tens cartões 🔴 «Não sabia» neste filtro.',
+    review: 'Nada para rever agora. Volta mais tarde.',
+    notes: 'Ainda não tens cartões com notas neste filtro.',
+  };
   function renderEnd(el) {
     const div = document.createElement('div');
     div.className = 'end';
     const none = deck.length === 0;
-    div.innerHTML = none
-      ? `<div class="big">🛬</div><h2>Sem cartões aqui</h2><p>${S.study === 'hard' ? 'Ainda não tens cartões difíceis (🔴 / 🟡) neste filtro.' : 'Todos os cartões deste filtro estão escondidos ou adiados.'}</p><button class="primary" id="openMenu2">Mudar filtros</button>`
-      : `<div class="big">🛬</div><h2>Aterragem!</h2><p>${deck.length} cartões revistos neste voo.</p><button class="primary" id="again">Novo voo (baralhar)</button>`;
+    if (none) {
+      div.innerHTML = `<div class="big">🛬</div><h2>Sem cartões aqui</h2><p>${EMPTY[session && session.kind] || 'Todos os cartões deste filtro estão escondidos ou adiados.'}</p>
+        <div class="end-btns"><button class="primary" data-end="home">‹ Painel</button><button class="ghost-btn" data-end="menu">Mudar filtros</button></div>`;
+    } else {
+      const t = tally(), n = new Set(deck.map(c => c.id)).size;
+      div.innerHTML = `<div class="big">🛬</div><h2>Aterragem!</h2><p>${n} pergunta${n === 1 ? '' : 's'} neste voo · ${esc(sessLabel())}</p>
+        <div class="tally"><span class="r-f">🟢 ${t.f}<small>fácil</small></span><span class="r-p">🟡 ${t.p}<small>pensei</small></span><span class="r-n">🔴 ${t.n}<small>não sabia</small></span></div>
+        <p class="small">1.ª avaliação de cada pergunta neste voo</p>
+        <div class="end-btns"><button class="primary" data-end="again">Novo voo (baralhar)</button><button class="ghost-btn" data-end="home">‹ Painel</button></div>`;
+      confetti();
+    }
     el.appendChild(div);
-    if (!none) confetti();
-    div.querySelector('button').addEventListener('click', e => {
+    div.addEventListener('click', e => {
+      const b = e.target.closest('[data-end]'); if (!b) return;
       e.stopPropagation();
-      if (none) openPanel(); else { buildDeck(); render(1); }
+      if (b.dataset.end === 'home') goHome();
+      else if (b.dataset.end === 'menu') openPanel();
+      else { buildDeck(); render(1); }
     });
   }
 
+  // contadores do dia: se ainda não estudaste hoje, mostram 0 (e a série só conta até ontem)
+  const dayStr = ms => new Date(ms).toISOString().slice(0, 10);
+  const todayNow = () => (data.day === dayStr(Date.now()) ? data.today : 0);
+  const streakNow = () => ([dayStr(Date.now()), dayStr(Date.now() - 864e5)].includes(data.day) ? data.streak : 0);
   // perguntas diferentes já vistas, de todos os cartões (não só deste voo nem só de hoje)
   const seenCount = () => cards.reduce((n, c) => n + (data.seen[c.id] ? 1 : 0), 0);
 
@@ -229,7 +276,12 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     $('#plane').style.left = p * 100 + '%';
     document.documentElement.style.setProperty('--p', p.toFixed(3));
     $('#dest').textContent = `${seen}/${cards.length}`;
-    $('#streak').textContent = `🔥 ${data.today} · ${data.streak}d`;
+    $('#streak').textContent = `🔥 ${todayNow()} · ${streakNow()}d`;
+    if (session) {
+      const t = tally();
+      $('#sessName').textContent = sessLabel();
+      $('#sessTally').textContent = Object.keys(session.first).length ? `🟢 ${t.f} · 🟡 ${t.p} · 🔴 ${t.n}` : '';
+    }
   }
 
   // ---------- Navegação ----------
@@ -265,7 +317,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
   const stage = $('#stage');
   let g = null;
   stage.addEventListener('pointerdown', e => {
-    if (e.target.closest('button')) return;
+    if (e.target.closest('button, .sbar')) return;
     g = { x: e.clientX, y: e.clientY, t: Date.now(), card: $('#deck .card:not(.ghost)') };
   });
   stage.addEventListener('pointermove', e => {
@@ -294,7 +346,8 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
   document.addEventListener('keydown', e => {
     if (e.target.matches('input, textarea, select')) return;
     const open = $('#sheet').classList.contains('open') || $('#library').classList.contains('open') || $('#panel').classList.contains('open');
-    if (e.key === 'Escape') { closeSheet(); closePanel(); closeLib(); }
+    if (e.key === 'Escape') { if (open) { closeSheet(); closePanel(); closeLib(); } else if (!isHome()) goHome(); }
+    else if (isHome()) return; // no painel as teclas não mexem no baralho
     else if ('123'.includes(e.key) && e.key.length === 1 && !e.repeat && !$('#library').classList.contains('open') && !$('#panel').classList.contains('open')) rateCard({ 1: 'f', 2: 'p', 3: 'n' }[e.key]); // teclado: 1 fácil · 2 pensei · 3 não sabia
     else if (open) return;
     else if (e.key === ' ' || e.key === 'ArrowRight') { e.preventDefault(); next(); }
@@ -364,6 +417,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     const c = deck[idx]; if (!c || !RATE[l] || moving) return;
     moving = true;
     data.rate[c.id] = { l, at: Date.now() };
+    if (session && !(c.id in session.first)) session.first[c.id] = l; // resumo do voo: conta a 1.ª avaliação
     rated.add(c);
     if (l === 'n') requeueHard(c);
     persist();
@@ -545,7 +599,6 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     $('#themeChips').querySelectorAll('button').forEach(b => b.onclick = () => { b.classList.toggle('sel'); markMode(null); });
     markMode(S.themes ? null : S.mode);
     $('#prioSeg').querySelectorAll('button').forEach(b => b.classList.toggle('sel', b.dataset.prio === S.prio));
-    $('#studySeg').querySelectorAll('button').forEach(b => b.classList.toggle('sel', b.dataset.study === S.study));
     $('#vol').value = S.vol;
     $('#apiKey').value = S.apiKey;
     $('#model').value = S.model;
@@ -559,9 +612,9 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     $('#stats').innerHTML = `
       <div class="stat wide"><b>${seen}<small> / ${cards.length}</small></b><span>perguntas diferentes já vistas · ${pct}%</span>
         <i class="bar"><i style="width:${pct}%"></i></i></div>
-      <div class="stat"><b>${data.today}</b><span>hoje</span></div>
+      <div class="stat"><b>${todayNow()}</b><span>hoje</span></div>
       <div class="stat"><b>${data.total}</b><span>passagens no total</span></div>
-      <div class="stat"><b>${data.streak}</b><span>dias seguidos</span></div>
+      <div class="stat"><b>${streakNow()}</b><span>dias seguidos</span></div>
       <div class="stat"><b>${mastered}</b><span>dominados</span></div>
       <div class="stat"><b>${later}</b><span>adiados</span></div>
       <div class="stat"><b>${new Set([...Object.keys(data.notes), ...Object.keys(data.imgs).filter(nImgs)]).size}</b><span>com notas</span></div>
@@ -570,7 +623,12 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
       <div class="stat"><b>${rc.f}</b><span>🟢 fácil</span></div>`;
     panel.classList.add('open'); panel.setAttribute('aria-hidden', 'false');
   }
-  function closePanel() { panel.classList.remove('open'); panel.setAttribute('aria-hidden', 'true'); queueSync(); }
+  function closePanel() {
+    if (!panel.classList.contains('open')) return;
+    panel.classList.remove('open'); panel.setAttribute('aria-hidden', 'true');
+    if (isHome()) renderHome(); // ex.: importar, repor escondidos
+    queueSync();
+  }
   function markMode(m) {
     $('#modeSeg').querySelectorAll('button').forEach(b => b.classList.toggle('sel', b.dataset.mode === m));
   }
@@ -584,9 +642,6 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
   });
   $('#prioSeg').querySelectorAll('button').forEach(b => b.onclick = () => {
     $('#prioSeg').querySelectorAll('button').forEach(x => x.classList.toggle('sel', x === b));
-  });
-  $('#studySeg').querySelectorAll('button').forEach(b => b.onclick = () => {
-    $('#studySeg').querySelectorAll('button').forEach(x => x.classList.toggle('sel', x === b));
   });
   $('#vol').addEventListener('input', e => { S.vol = +e.target.value; StudyMusic.setVolume(S.vol); persist(); });
   $('#apiKey').addEventListener('change', e => { S.apiKey = e.target.value.trim(); persist(); });
@@ -621,11 +676,11 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     if (!sel.length) { toast('Escolhe pelo menos um tema'); return; }
     if (modeBtn) { S.mode = modeBtn.dataset.mode; S.themes = null; } else { S.themes = sel; }
     S.prio = $('#prioSeg .sel')?.dataset.prio || 'all';
-    S.study = $('#studySeg .sel')?.dataset.study || 'all';
     S.apiKey = $('#apiKey').value.trim(); S.model = $('#model').value;
     ['#ghToken', '#ghRepo', '#ghBranch'].forEach(s => $(s).dispatchEvent(new Event('change')));
-    persist(); closePanel(); buildDeck(); render(1);
-    toast(`🛫 ${deck.length} cartões a bordo`);
+    persist();
+    if (session && !isHome()) { closePanel(); buildDeck(); render(1); toast(`🛫 ${deck.length} cartões a bordo`); } // a meio de um voo: rebaralha o mesmo tipo de voo
+    else { session = null; closePanel(); toast('✓ Filtros aplicados'); } // no painel: o voo em pausa já não corresponde aos filtros
   });
   $('#resetSnooze').addEventListener('click', () => {
     const b = $('#resetSnooze');
@@ -823,6 +878,7 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     document.activeElement && document.activeElement.blur();
     editId = null;
     refreshCard();
+    if (isHome()) renderHome();
     queueSync();
   }
   $('#closeLib').addEventListener('click', closeLib);
@@ -942,6 +998,123 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     refreshSave();
   });
 
+  // ---------- Painel inicial ----------
+  //   Abrir app ─► Painel ─► botão (Estudar, Nunca vistas, Difíceis, …, tema) ─► voo
+  //   voo ─► ‹ Painel / Esc / Voltar do Android ─► Painel (com «Continuar voo»)
+  const home = $('#home');
+  function isHome() { return !home.hidden; }
+  const pct = (a, b) => (b ? a / b * 100 : 0).toFixed(2) + '%';
+  // barra empilhada: 🔴 · 🟡 · 🟢 · vistas sem avaliação (o resto da barra = nunca vistas)
+  const stack = (r, total) => `<span class="stack" aria-hidden="true">${[['n', 'var(--rose)'], ['p', 'var(--amber)'], ['f', 'var(--mint)'], ['s', 'rgba(255,255,255,.42)']]
+    .map(([k, col]) => r[k] ? `<i style="width:${pct(r[k], total)};background:${col}"></i>` : '').join('')}</span>`;
+  function breakdown(list) {
+    const r = { n: 0, p: 0, f: 0, s: 0, u: 0 }; // s: visto sem avaliação · u: nunca visto
+    list.forEach(c => { const l = lvl(c); if (l) r[l]++; else if (data.seen[c.id]) r.s++; else r.u++; });
+    return r;
+  }
+
+  function renderHome() {
+    updateProgress();
+    const th = new Set(activeThemes());
+    const scope = cards.filter(c => th.has(c.theme) && (S.prio === 'all' || c.prio === S.prio));
+    const live = scope.filter(c => !hidden(c)); // os voos não mostram dominados nem adiados
+    const cnt = k => live.filter(KINDS[k].test).length;
+    const r = breakdown(scope), seen = scope.length - r.u;
+    const mastered = scope.filter(c => data.snooze[c.id] === -1).length;
+    const later = scope.filter(c => data.snooze[c.id] > Date.now()).length;
+    const modeSel = S.themes ? '' : S.mode;
+    const filt = [S.themes ? `temas escolhidos (${S.themes.length})` : '', S.prio !== 'all' ? `só ${S.prio}` : ''].filter(Boolean).join(' · ');
+    const going = session && deck.length && idx < deck.length;
+
+    const tile = k => {
+      const K = KINDS[k], n = k === 'quick' ? Math.min(K.limit, cnt('study')) : cnt(k);
+      return `<button class="tile" data-go="${k}" style="--acc:${K.acc}"${n ? '' : ' disabled'}>
+        <span class="t-ic">${K.icon}</span><span class="t-n">${n}</span><b>${K.label}</b><small>${K.sub}</small></button>`;
+    };
+    const themes = [...new Set(scope.map(c => c.theme))];
+    const themeRow = t => {
+      const list = scope.filter(c => c.theme === t), tr = breakdown(list), ok = list.some(c => !hidden(c));
+      return `<button class="th-row" data-go="theme" data-theme="${esc(t)}" style="--theme:${THEMES[t] || '#999'}"${ok ? '' : ' disabled'}>
+        <b>${esc(LABEL[t] || t)}</b><span class="th-n">${[tr.n && `🔴 ${tr.n}`, tr.p && `🟡 ${tr.p}`, `${list.length - tr.u}/${list.length}`].filter(Boolean).join(' · ')}</span>
+        ${stack(tr, list.length)}</button>`;
+    };
+
+    home.innerHTML = `<div class="home-in">
+      <div class="hmode" role="group" aria-label="Modo">
+        ${[['all', 'Tudo'], ['tech', 'Teste teórico'], ['interview', 'Entrevista']].map(([m, t]) =>
+          `<button data-hmode="${m}" class="${m === modeSel ? 'sel' : ''}">${t}</button>`).join('')}
+      </div>
+      ${filt ? `<p class="hfilter">Filtro do ☰: ${filt}</p>` : ''}
+
+      <div class="hstats">
+        <div class="hs-top"><b>${seen}<small> / ${scope.length}</small></b><span>vistas · ${scope.length ? Math.floor(seen / scope.length * 100) : 0}%</span></div>
+        ${stack(r, scope.length)}
+        <div class="legend">
+          <span><i style="background:var(--rose)"></i>${r.n} não sabia</span>
+          <span><i style="background:var(--amber)"></i>${r.p} pensei</span>
+          <span><i style="background:var(--mint)"></i>${r.f} fácil</span>
+          ${r.s ? `<span><i style="background:rgba(255,255,255,.42)"></i>${r.s} sem avaliação</span>` : ''}
+          <span><i class="hollow"></i>${r.u} por ver</span>
+        </div>
+        <div class="hs-foot">🔥 ${todayNow()} hoje · ${streakNow()} dia${streakNow() === 1 ? '' : 's'} seguido${streakNow() === 1 ? '' : 's'}${mastered ? ` · ✓ ${mastered} dominado${mastered === 1 ? '' : 's'}` : ''}${later ? ` · ⏱ ${later} adiado${later === 1 ? '' : 's'}` : ''}</div>
+      </div>
+
+      ${going ? `<button class="continue" data-go="resume"><span>⏯</span><span class="go-tx"><b>Continuar voo</b><small>${esc(sessLabel())} · cartão ${idx + 1} de ${deck.length}</small></span><span class="chev">›</span></button>` : ''}
+
+      <button class="go-main" data-go="study"${cnt('study') ? '' : ' disabled'}>
+        <span class="go-ic">▶</span>
+        <span class="go-tx"><b>Estudar</b><small>🔴 não sabia → 🟡 pensei → novas → 🟢 fácil</small></span>
+        <span class="go-n">${cnt('study')}</span>
+      </button>
+
+      <div class="tiles">${['unseen', 'hard', 'n', 'review', 'quick', 'notes'].map(tile).join('')}</div>
+
+      <h3 class="hsec">Por tema <small>toca para estudar só esse tema</small></h3>
+      <div class="th-rows">${themes.map(themeRow).join('') || '<p class="hfilter">Sem cartões neste filtro.</p>'}</div>
+
+      <button class="wide-btn" data-go="lib">🗂 Ver e editar todos os cartões</button>
+    </div>`;
+  }
+
+  function showHome() {
+    closeSheet();
+    renderHome();
+    home.hidden = false; stage.hidden = true;
+    home.scrollTop = 0;
+  }
+  // com o botão Voltar do telemóvel: cada voo é uma entrada no histórico
+  const goHome = () => (history.state && history.state.flight ? history.back() : showHome());
+  window.addEventListener('popstate', () => { if (!isHome()) { closePanel(); closeLib(); showHome(); } });
+  function enterFlight() {
+    home.hidden = true; stage.hidden = false;
+    if (!(history.state && history.state.flight)) { try { history.pushState({ flight: 1 }, ''); } catch {} }
+  }
+  function startSession(kind, theme) {
+    session = { kind, theme: theme || null, first: {} };
+    buildDeck();
+    enterFlight();
+    $('#deck').innerHTML = ''; // o cartão do voo anterior não «descola» no voo novo
+    render(1);
+    if (deck.length) toast(`🛫 ${deck.length} cartões a bordo`);
+  }
+  function resumeSession() {
+    enterFlight();
+    refreshCard(); updateProgress();
+  }
+  home.addEventListener('click', e => {
+    const m = e.target.closest('[data-hmode]');
+    if (m) {
+      if (S.themes || S.mode !== m.dataset.hmode) { S.mode = m.dataset.hmode; S.themes = null; session = null; persist(); renderHome(); }
+      return;
+    }
+    const b = e.target.closest('[data-go]'); if (!b || b.disabled) return;
+    const go = b.dataset.go;
+    if (go === 'resume') resumeSession();
+    else if (go === 'lib') openLib();
+    else startSession(go, b.dataset.theme);
+  });
+  $('#homeBtn').addEventListener('click', goHome);
+
   // ---------- Música ----------
   const mBtn = $('#musicBtn');
   function setMusic(on) {
@@ -987,8 +1160,13 @@ Se te pedirem uma pergunta de treino, não dês a resposta até o candidato resp
     try { md = await (await fetch('cards.md', { cache: 'no-cache' })).text(); }
     catch { try { md = await (await caches.match('cards.md')).text(); } catch {} }
     cards = parse(applyPending(md));
-    if (!cards.length) { $('#deck').innerHTML = '<div class="end"><h2>Não consegui ler cards.md</h2><p>Abre a app através do GitHub Pages (ou de um servidor), não a partir do ficheiro.</p></div>'; return; }
-    buildDeck(); render(0);
+    if (!cards.length) {
+      home.hidden = true; stage.hidden = false; $('#sbar').hidden = true;
+      $('#deck').innerHTML = '<div class="end"><h2>Não consegui ler cards.md</h2><p>Abre a app através do GitHub Pages (ou de um servidor), não a partir do ficheiro.</p></div>';
+      return;
+    }
+    if (history.state && history.state.flight) { try { history.replaceState(null, ''); } catch {} } // recarregar a meio de um voo: começa no painel
+    showHome();
   }
   init();
 
